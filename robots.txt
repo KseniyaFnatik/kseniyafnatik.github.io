@@ -1,0 +1,15 @@
+User-agent: *
+Disallow: /404.html
+Disallow: /*?print
+Disallow: /search/
+Disallow: /auth/
+Disallow: /login/
+Disallow: /register/
+Disallow: /admin/
+Disallow: /wp-admin/
+Disallow: /account/
+Disallow: /profile/
+
+Allow: /
+
+Sitemap: https://kseniyafnatik.github.io/sitemap.xml
