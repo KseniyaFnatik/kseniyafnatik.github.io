@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск работы - JobFinder</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Навигационное меню -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="index.html">
+                    <img src="images/logo.svg" alt="JobFinder" class="logo-img">
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="about.html" class="nav-link">О компании</a>
+                </li>
+                <li class="nav-item">
+                    <a href="contacts.html" class="nav-link">Контакты</a>
+                </li>
+                <li class="nav-item">
+                    <a href="job-search.html" class="nav-link active">Поиск работы</a>
+                </li>
+                <li class="nav-item">
+                    <a href="login.html" class="nav-link login-btn">Войти</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Поиск работы -->
+    <section class="job-search-section">
+        <div class="container">
+            <div class="search-header">
+                <h1>Поиск работы</h1>
+                <p>Найдите подходящую вакансию с помощью фильтров</p>
+            </div>
+
+            <!-- Поисковая строка -->
+            <div class="search-bar">
+                <div class="search-input-group">
+                    <input type="text" class="search-input" placeholder="Введите профессию или ключевые слова">
+                    <input type="text" class="search-input" placeholder="Город">
+                    <button class="btn btn-primary search-btn">Найти</button>
+                </div>
+            </div>
+
+            <!-- Фильтры -->
+            <div class="filters-section">
+                <button class="filters-toggle btn btn-secondary">
+                    <img src="images/filter-icon.svg" alt="Фильтры">
+                    Фильтры
+                </button>
+                
+                <div class="filters-panel">
+                    <div class="filter-group">
+                        <label>Профессия</label>
+                        <select class="filter-select">
+                            <option value="">Все профессии</option>
+                            <option value="frontend">Frontend разработчик</option>
+                            <option value="backend">Backend разработчик</option>
+                            <option value="fullstack">Full-stack разработчик</option>
+                            <option value="designer">Дизайнер</option>
+                            <option value="manager">Менеджер</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Зарплата</label>
+                        <div class="salary-range">
+                            <input type="number" placeholder="От" class="salary-input">
+                            <span>-</span>
+                            <input type="number" placeholder="До" class="salary-input">
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Регион</label>
+                        <select class="filter-select">
+                            <option value="">Все регионы</option>
+                            <option value="moscow">Москва</option>
+                            <option value="spb">Санкт-Петербург</option>
+                            <option value="ekaterinburg">Екатеринбург</option>
+                            <option value="remote">Удаленная работа</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Тип занятости</label>
+                        <div class="employment-types">
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="full">
+                                <span class="checkmark"></span>
+                                Полная занятость
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="part">
+                                <span class="checkmark"></span>
+                                Частичная занятость
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="remote">
+                                <span class="checkmark"></span>
+                                Удаленная работа
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button class="btn btn-primary">Применить фильтры</button>
+                        <button class="btn btn-secondary">Сбросить</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Результаты поиска -->
+            <div class="search-results">
+                <div class="results-header">
+                    <h2>Найдено вакансий: 127</h2>
+                    <div class="sort-options">
+                        <label>Сортировка:</label>
+                        <select class="sort-select">
+                            <option value="relevance">По релевантности</option>
+                            <option value="date">По дате</option>
+                            <option value="salary">По зарплате</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="vacancies-list">
+                    <div class="vacancy-card">
+                        <div class="vacancy-header">
+                            <h3>Frontend разработчик</h3>
+                            <div class="vacancy-salary">от 80 000 ₽</div>
+                        </div>
+                        <div class="vacancy-company">
+                            <strong>ООО "Технологии"</strong>
+                            <span class="company-location">Москва</span>
+                        </div>
+                        <div class="vacancy-description">
+                            <p>Ищем опытного Frontend разработчика для работы с современными технологиями. Требуется знание React, TypeScript, CSS.</p>
+                        </div>
+                        <div class="vacancy-tags">
+                            <span class="tag">React</span>
+                            <span class="tag">TypeScript</span>
+                            <span class="tag">CSS</span>
+                            <span class="tag">JavaScript</span>
+                        </div>
+                        <div class="vacancy-footer">
+                            <span class="vacancy-date">2 дня назад</span>
+                            <button class="btn btn-primary">Откликнуться</button>
+                        </div>
+                    </div>
+
+                    <div class="vacancy-card">
+                        <div class="vacancy-header">
+                            <h3>Backend разработчик</h3>
+                            <div class="vacancy-salary">от 100 000 ₽</div>
+                        </div>
+                        <div class="vacancy-company">
+                            <strong>ООО "Инновации"</strong>
+                            <span class="company-location">Санкт-Петербург</span>
+                        </div>
+                        <div class="vacancy-description">
+                            <p>Разработка серверной части веб-приложений. Опыт работы с Node.js, PostgreSQL, Docker.</p>
+                        </div>
+                        <div class="vacancy-tags">
+                            <span class="tag">Node.js</span>
+                            <span class="tag">PostgreSQL</span>
+                            <span class="tag">Docker</span>
+                            <span class="tag">API</span>
+                        </div>
+                        <div class="vacancy-footer">
+                            <span class="vacancy-date">1 день назад</span>
+                            <button class="btn btn-primary">Откликнуться</button>
+                        </div>
+                    </div>
+
+                    <div class="vacancy-card">
+                        <div class="vacancy-header">
+                            <h3>Full-stack разработчик</h3>
+                            <div class="vacancy-salary">от 120 000 ₽</div>
+                        </div>
+                        <div class="vacancy-company">
+                            <strong>ООО "Стартап"</strong>
+                            <span class="company-location">Удаленно</span>
+                        </div>
+                        <div class="vacancy-description">
+                            <p>Полный цикл разработки веб-приложений. Знание React, Node.js, базы данных. Возможность удаленной работы.</p>
+                        </div>
+                        <div class="vacancy-tags">
+                            <span class="tag">React</span>
+                            <span class="tag">Node.js</span>
+                            <span class="tag">MongoDB</span>
+                            <span class="tag">Remote</span>
+                        </div>
+                        <div class="vacancy-footer">
+                            <span class="vacancy-date">3 часа назад</span>
+                            <button class="btn btn-primary">Откликнуться</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Пагинация -->
+                <div class="pagination">
+                    <button class="pagination-btn disabled">Предыдущая</button>
+                    <button class="pagination-btn active">1</button>
+                    <button class="pagination-btn">2</button>
+                    <button class="pagination-btn">3</button>
+                    <button class="pagination-btn">...</button>
+                    <button class="pagination-btn">10</button>
+                    <button class="pagination-btn">Следующая</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>JobFinder</h3>
+                    <p>Ваш надежный помощник в поиске работы</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Навигация</h4>
+                    <ul>
+                        <li><a href="about.html">О компании</a></li>
+                        <li><a href="contacts.html">Контакты</a></li>
+                        <li><a href="job-search.html">Поиск работы</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Контакты</h4>
+                    <p>Телефон: +7 (999) 123-45-67</p>
+                    <p>Email: info@jobfinder.ru</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; Lime. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

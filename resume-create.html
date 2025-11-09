@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создание резюме - JobFinder</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Навигационное меню -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="index.html">
+                    <img src="images/logo.svg" alt="JobFinder" class="logo-img">
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="about.html" class="nav-link">О компании</a>
+                </li>
+                <li class="nav-item">
+                    <a href="contacts.html" class="nav-link">Контакты</a>
+                </li>
+                <li class="nav-item">
+                    <a href="job-search.html" class="nav-link">Поиск работы</a>
+                </li>
+                <li class="nav-item">
+                    <a href="profile.html" class="nav-link">Профиль</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Создание резюме -->
+    <section class="resume-create-section">
+        <div class="container">
+            <div class="resume-header">
+                <h1>Создание резюме</h1>
+                <p>Заполните все необходимые поля для создания профессионального резюме</p>
+            </div>
+
+            <form class="resume-form" id="resumeForm">
+                <!-- Личные данные -->
+                <div class="form-section">
+                    <h2>Личные данные</h2>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fullName">ФИО *</label>
+                            <input type="text" id="fullName" name="fullName" placeholder="Иванов Иван Иванович" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="birthDate">Дата рождения</label>
+                            <input type="date" id="birthDate" name="birthDate">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="phone">Телефон *</label>
+                            <input type="tel" id="phone" name="phone" placeholder="+7 (999) 123-45-67" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" placeholder="ivan.ivanov@email.com" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Адрес проживания</label>
+                        <input type="text" id="address" name="address" placeholder="г. Москва, ул. Примерная, д. 1">
+                    </div>
+                </div>
+
+                <!-- Образование -->
+                <div class="form-section">
+                    <h2>Образование *</h2>
+                    <div class="education-item">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="university">Учебное заведение</label>
+                                <input type="text" id="university" name="university" placeholder="МГУ им. М.В. Ломоносова" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="degree">Степень/Специальность</label>
+                                <input type="text" id="degree" name="degree" placeholder="Бакалавр информатики" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="graduationYear">Год окончания</label>
+                                <input type="number" id="graduationYear" name="graduationYear" placeholder="2020" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="gpa">Средний балл (необязательно)</label>
+                                <input type="number" id="gpa" name="gpa" placeholder="4.5" step="0.1" min="0" max="5">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary add-education">Добавить образование</button>
+                </div>
+
+                <!-- Желаемая зп -->
+                <div class="form-section">
+                    <h2>Желаемая зарплата</h2>
+                    <div class="form-group">
+                        <label for="desiredSalary">Зарплата (руб.)</label>
+                        <input type="number" id="desiredSalary" name="desiredSalary" placeholder="100000">
+                    </div>
+                </div>
+
+                <!-- Опыт работы -->
+                <div class="form-section">
+                    <h2>Опыт работы *</h2>
+                    <div class="experience-toggle">
+                        <label class="radio-label">
+                            <input type="radio" name="hasExperience" value="yes" required>
+                            <span class="radio-mark"></span>
+                            Есть опыт работы
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="hasExperience" value="no" required>
+                            <span class="radio-mark"></span>
+                            Нет опыта работы
+                        </label>
+                    </div>
+
+                    <div class="experience-section" id="experienceSection" style="display: none;">
+                        <div class="experience-item">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="company">Компания</label>
+                                    <input type="text" id="company" name="company" placeholder="ООО 'Пример'">
+                                </div>
+                                <div class="form-group">
+                                    <label for="position">Должность</label>
+                                    <input type="text" id="position" name="position" placeholder="Frontend разработчик">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="startDate">Дата начала</label>
+                                    <input type="date" id="startDate" name="startDate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="endDate">Дата окончания</label>
+                                    <input type="date" id="endDate" name="endDate">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="responsibilities">Обязанности и достижения</label>
+                                <textarea id="responsibilities" name="responsibilities" rows="4" placeholder="Опишите ваши обязанности и достижения"></textarea>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary add-experience">Добавить место работы</button>
+                    </div>
+                </div>
+
+                <!-- Навыки -->
+                <div class="form-section">
+                    <h2>Навыки</h2>
+                    <div class="skills-section">
+                        <div class="form-group">
+                            <label for="professionalSkills">Профессиональные навыки</label>
+                            <textarea id="professionalSkills" name="professionalSkills" rows="3" placeholder="JavaScript, React, Node.js, Git"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="personalSkills">Личные качества</label>
+                            <textarea id="personalSkills" name="personalSkills" rows="3" placeholder="Коммуникабельность, ответственность, стрессоустойчивость"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Шаблон резюме -->
+                <div class="form-section">
+                    <h2>Шаблон резюме</h2>
+                    <div class="template-info">
+                        <div class="template-preview">
+                            <img src="images/template-classic.jpg" alt="Профессиональный шаблон">
+                        </div>
+                        <div class="template-description">
+                            <h3>Профессиональный шаблон</h3>
+                            <p>Строгий и профессиональный дизайн, подходящий для любых сфер деятельности. Четкая структура и читаемость обеспечат хорошее впечатление у работодателей.</p>
+                            <ul class="template-features">
+                                <li>Четкая структура разделов</li>
+                                <li>Профессиональное оформление</li>
+                                <li>Адаптивный дизайн</li>
+                                <li>Экспорт в PDF и DOCX</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Кнопки действий -->
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary">Сохранить черновик</button>
+                    <button type="button" class="btn btn-primary" id="previewBtn">Предварительный просмотр</button>
+                    <button type="submit" class="btn btn-success">Создать резюме</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>JobFinder</h3>
+                    <p>Ваш надежный помощник в поиске работы</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Навигация</h4>
+                    <ul>
+                        <li><a href="about.html">О компании</a></li>
+                        <li><a href="contacts.html">Контакты</a></li>
+                        <li><a href="job-search.html">Поиск работы</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Контакты</h4>
+                    <p>Телефон: +7 (966) 129-45-45</p>
+                    <p>Email: info@jobfinder.ru</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; Lime. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

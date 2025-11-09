@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контакты - JobFinder</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=YOUR_API_KEY&lang=ru_RU" type="text/javascript"></script>
+</head>
+<body>
+    <!-- Навигационное меню -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="index.html">
+                    <img src="images/logo.svg" alt="JobFinder" class="logo-img">
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="about.html" class="nav-link">О компании</a>
+                </li>
+                <li class="nav-item">
+                    <a href="contacts.html" class="nav-link active">Контакты</a>
+                </li>
+                <li class="nav-item">
+                    <a href="job-search.html" class="nav-link">Поиск работы</a>
+                </li>
+                <li class="nav-item">
+                    <a href="login.html" class="nav-link login-btn">Войти</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Контакты -->
+    <section class="contacts-section">
+        <div class="container">
+            <div class="contacts-header">
+                <h1>Контакты</h1>
+                <p class="contacts-subtitle">Свяжитесь с нами любым удобным способом</p>
+            </div>
+
+            <div class="contacts-content">
+                <div class="contacts-info">
+                    <h2>Контактная информация</h2>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <img src="images/phone-icon.svg" alt="Телефон">
+                        </div>
+                        <div class="contact-details">
+                            <h3>Телефон</h3>
+                            <p>+7 (999) 123-45-67</p>
+                            <p>Пн-Пт: 9:00 - 18:00</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <img src="images/support-icon.svg" alt="Поддержка">
+                        </div>
+                        <div class="contact-details">
+                            <h3>Служба поддержки</h3>
+                            <p>+7 (999) 987-65-43</p>
+                            <p>Круглосуточно</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <img src="images/email-icon.svg" alt="Email">
+                        </div>
+                        <div class="contact-details">
+                            <h3>Электронная почта</h3>
+                            <p>info@jobfinder.ru</p>
+                            <p>support@jobfinder.ru</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <img src="images/location-icon.svg" alt="Адрес">
+                        </div>
+                        <div class="contact-details">
+                            <h3>Адрес офиса</h3>
+                            <p>г. Москва, ул. Тверская, д. 15, офис 201</p>
+                            <p>БЦ "Тверской", 2 этаж</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="map-container">
+                    <h2>Местоположение</h2>
+                    <div id="yandex-map" style="width: 100%; height: 400px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"></div>
+                </div>
+            </div>
+
+            <!-- Форма обратной связи -->
+            <div class="feedback-form-container">
+                <h2>Обратная связь</h2>
+                <form class="feedback-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="feedback-name">Имя</label>
+                            <input type="text" id="feedback-name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="feedback-email">Email</label>
+                            <input type="email" id="feedback-email" name="email" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-phone">Телефон</label>
+                        <input type="tel" id="feedback-phone" name="phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-subject">Тема</label>
+                        <select id="feedback-subject" name="subject" required>
+                            <option value="">Выберите тему</option>
+                            <option value="general">Общие вопросы</option>
+                            <option value="technical">Техническая поддержка</option>
+                            <option value="partnership">Сотрудничество</option>
+                            <option value="other">Другое</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="feedback-message">Сообщение</label>
+                        <textarea id="feedback-message" name="message" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Отправить сообщение</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>JobFinder</h3>
+                    <p>Ваш надежный помощник в поиске работы</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Навигация</h4>
+                    <ul>
+                        <li><a href="about.html">О компании</a></li>
+                        <li><a href="contacts.html">Контакты</a></li>
+                        <li><a href="job-search.html">Поиск работы</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Контакты</h4>
+                    <p>Телефон: +7 (999) 123-45-67</p>
+                    <p>Email: info@jobfinder.ru</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; Lime. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+    <script type="text/javascript">
+        // Инициализация Яндекс карты
+        ymaps.ready(function () {
+            // Создаем карту
+            var myMap = new ymaps.Map('yandex-map', {
+                center: [55.7558, 37.6176], // Координаты Тверской улицы, 15
+                zoom: 16,
+                controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
+            });
+
+            // Добавляем метку
+            var myPlacemark = new ymaps.Placemark([55.7558, 37.6176], {
+                balloonContentHeader: 'JobFinder',
+                balloonContentBody: 'г. Москва, ул. Тверская, д. 15, офис 201<br>БЦ "Тверской", 2 этаж',
+                balloonContentFooter: 'Ваш надежный помощник в поиске работы',
+                hintContent: 'Офис JobFinder'
+            }, {
+                iconLayout: 'default#image',
+                iconImageHref: 'https://yastatic.net/s3/home/logos/ru/ru.svg',
+                iconImageSize: [30, 30],
+                iconImageOffset: [-15, -15]
+            });
+
+            // Добавляем метку на карту
+            myMap.geoObjects.add(myPlacemark);
+
+            // Открываем балун при клике на метку
+            myPlacemark.events.add('click', function () {
+                myPlacemark.balloon.open();
+            });
+        });
+    </script>
+</body>
+</html>
