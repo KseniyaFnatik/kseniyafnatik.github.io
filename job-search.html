@@ -3,8 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поиск работы - JobFinder</title>
+    <title>Поиск работы - Lime</title>
+    <link rel="icon" href="data:,">
+    <script>
+        // Регистрация Service Worker для перехвата всех запросов
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                .then(() => console.log('Service Worker зарегистрирован'))
+                .catch(error => console.log('Ошибка регистрации SW:', error));
+        }
+        
+        (function() {
+            const existingPages = ['index.html', 'about.html', 'contacts.html', 'job-search.html', 'login.html', 'profile.html', 'resume-create.html', '404.html', 'admin.html', 'yandex_9692edf2d716bce0.html'];
+            let currentPage = window.location.pathname.split('/').pop();
+            if (!currentPage || currentPage === '' || currentPage === '/') currentPage = 'index.html';
+            if (currentPage !== '404.html' && currentPage.endsWith('.html') && !existingPages.includes(currentPage)) {
+                window.location.replace('404.html');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/404-check.js"></script>
 </head>
 <body>
     <!-- Навигационное меню -->
@@ -12,7 +31,7 @@
         <div class="nav-container">
             <div class="nav-logo">
                 <a href="index.html">
-                    <img src="images/logo.svg" alt="JobFinder" class="logo-img">
+                    <img src="images/logo.svg" alt="Lime" class="logo-img">
                 </a>
             </div>
             <ul class="nav-menu">
@@ -224,7 +243,7 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3>JobFinder</h3>
+                    <h3>Lime</h3>
                     <p>Ваш надежный помощник в поиске работы</p>
                 </div>
                 <div class="footer-section">
@@ -238,7 +257,7 @@
                 <div class="footer-section">
                     <h4>Контакты</h4>
                     <p>Телефон: +7 (999) 123-45-67</p>
-                    <p>Email: info@jobfinder.ru</p>
+                    <p>Email: info@lime.ru</p>
                 </div>
             </div>
             <div class="footer-bottom">

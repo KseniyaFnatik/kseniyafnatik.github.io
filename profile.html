@@ -4,7 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Профиль</title>
+    <link rel="icon" href="data:,">
+    <script>
+        // Регистрация Service Worker для перехвата всех запросов
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                .then(() => console.log('Service Worker зарегистрирован'))
+                .catch(error => console.log('Ошибка регистрации SW:', error));
+        }
+        
+        (function() {
+            const existingPages = ['index.html', 'about.html', 'contacts.html', 'job-search.html', 'login.html', 'profile.html', 'resume-create.html', '404.html', 'admin.html', 'yandex_9692edf2d716bce0.html'];
+            let currentPage = window.location.pathname.split('/').pop();
+            if (!currentPage || currentPage === '' || currentPage === '/') currentPage = 'index.html';
+            if (currentPage !== '404.html' && currentPage.endsWith('.html') && !existingPages.includes(currentPage)) {
+                window.location.replace('404.html');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/404-check.js"></script>
+    <style>
+        .edit-profile-form {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .edit-profile-form.active {
+            display: block;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .profile-info-view {
+            transition: opacity 0.3s ease;
+        }
+
+        .profile-info-view.hidden {
+            display: none;
+        }
+
+        .profile-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .profile-avatar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .avatar {
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .avatar:hover {
+            opacity: 0.8;
+        }
+
+        #avatarInput {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <!-- Навигационное меню -->
@@ -12,7 +85,7 @@
         <div class="nav-container">
             <div class="nav-logo">
                 <a href="index.html">
-                    <img src="images/logo.svg" alt="JobFinder" class="logo-img">
+                    <img src="images/logo.svg" alt="Lime" class="logo-img">
                 </a>
             </div>
             <ul class="nav-menu">
@@ -40,7 +113,12 @@
         <div class="container">
             <div class="profile-header">
                 <h1>Мой профиль</h1>
-                <a href="resume-create.html" class="btn btn-primary">Создать резюме</a>
+                <div id="profile-actions">
+                    <!-- Для соискателей -->
+                    <a href="resume-create.html" class="btn btn-primary" id="create-resume-btn" style="display: none;">Создать резюме</a>
+                    <!-- Для работодателей -->
+                    <button class="btn btn-primary" id="create-job-btn" style="display: none;">Создать вакансию</button>
+                </div>
             </div>
 
             <!-- Блок "Обо мне" -->
@@ -48,20 +126,53 @@
                 <h2>Обо мне</h2>
                 <div class="profile-info">
                     <div class="profile-avatar">
-                        <img src="images/default-avatar.png" alt="Аватар" class="avatar">
+                        <img src="images/default-avatar.jpg" alt="Аватар" class="avatar" id="avatarImage">
+                        <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                        <button class="btn btn-secondary btn-small change-avatar-btn" style="margin-top: 10px;">
+                            Сменить аватар
+                        </button>
                     </div>
                     <div class="profile-details">
-                        <h3>Иванов Иван Иванович</h3>
-                        <p><strong>Дата рождения:</strong> 15.03.1990</p>
-                        <p><strong>Телефон:</strong> +7 (999) 123-45-67</p>
-                        <p><strong>Email:</strong> ivan.ivanov@email.com</p>
-                        <button class="btn btn-secondary btn-small">Редактировать</button>
+                        <!-- Режим просмотра -->
+                        <div class="profile-info-view" id="profileView">
+                            <h3 id="viewFio">Иванов Иван Иванович</h3>
+                            <p><strong>Дата рождения:</strong> <span id="viewBirthDate">15.03.1990</span></p>
+                            <p><strong>Телефон:</strong> <span id="viewPhone">+7 (999) 123-45-67</span></p>
+                            <p><strong>Email:</strong> <span id="viewEmail">ivan.ivanov@email.com</span></p>
+                            <div class="profile-actions">
+                                <button class="btn btn-secondary btn-small" id="editProfileBtn">Редактировать</button>
+                            </div>
+                        </div>
+
+                        <!-- Режим редактирования -->
+                        <div class="edit-profile-form" id="editProfileForm">
+                            <div class="form-group">
+                                <label for="editFio">ФИО</label>
+                                <input type="text" id="editFio" class="form-control" placeholder="Введите ваше ФИО">
+                            </div>
+                            <div class="form-group">
+                                <label for="editBirthDate">Дата рождения</label>
+                                <input type="date" id="editBirthDate" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="editPhone">Телефон</label>
+                                <input type="tel" id="editPhone" class="form-control" placeholder="+7 (999) 123-45-67">
+                            </div>
+                            <div class="form-group">
+                                <label for="editEmail">Email</label>
+                                <input type="email" id="editEmail" class="form-control" placeholder="your@email.com">
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn btn-primary" id="saveProfileBtn">Сохранить</button>
+                                <button class="btn btn-secondary" id="cancelEditBtn">Отмена</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Таблица резюме -->
-            <div class="profile-card">
+            <!-- Таблица резюме (для соискателей) -->
+            <div class="profile-card" id="resumes-section" style="display: none;">
                 <h2>Мои резюме</h2>
                 <div class="resume-table-container">
                     <table class="resume-table">
@@ -74,63 +185,47 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>001</td>
-                                <td>Frontend разработчик</td>
-                                <td>15.12.2024</td>
-                                <td>
-                                    <button class="btn btn-small btn-primary">Просмотреть</button>
-                                    <button class="btn btn-small btn-danger">Удалить</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>002</td>
-                                <td>Backend разработчик</td>
-                                <td>10.12.2024</td>
-                                <td>
-                                    <button class="btn btn-small btn-primary">Просмотреть</button>
-                                    <button class="btn btn-small btn-danger">Удалить</button>
-                                </td>
-                            </tr>
+                            <!-- Резюме будут загружаться динамически -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Отклики -->
-            <div class="profile-card">
+            <!-- Таблица вакансий (для работодателей) -->
+            <div class="profile-card" id="jobs-section" style="display: none;">
+                <h2>Мои вакансии</h2>
+                <div class="resume-table-container">
+                    <table class="resume-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Название вакансии</th>
+                                <th>Компания</th>
+                                <th>Дата создания</th>
+                                <th>Откликов</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobs-table-body">
+                            <!-- Вакансии будут загружаться динамически -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Отклики (для соискателей) -->
+            <div class="profile-card" id="applications-section" style="display: none;">
                 <h2>Мои отклики</h2>
                 <div class="applications-list">
-                    <div class="application-item">
-                        <div class="application-info">
-                            <h4>Frontend разработчик в ООО "Технологии"</h3>
-                            <p>Статус: <span class="status sent">Отправлено</span></p>
-                            <p>Дата отклика: 15.12.2024</p>
-                        </div>
-                        <div class="application-actions">
-                            <button class="btn btn-small btn-secondary">Подробнее</button>
-                        </div>
-                    </div>
-                    <div class="application-item">
-                        <div class="application-info">
-                            <h4>Backend разработчик в ООО "Инновации"</h3>
-                            <p>Статус: <span class="status viewed">Просмотрено</span></p>
-                            <p>Дата отклика: 12.12.2024</p>
-                        </div>
-                        <div class="application-actions">
-                            <button class="btn btn-small btn-secondary">Подробнее</button>
-                        </div>
-                    </div>
-                    <div class="application-item">
-                        <div class="application-info">
-                            <h4>Full-stack разработчик в ООО "Стартап"</h3>
-                            <p>Статус: <span class="status invited">Приглашение</span></p>
-                            <p>Дата отклика: 10.12.2024</p>
-                        </div>
-                        <div class="application-actions">
-                            <button class="btn btn-small btn-success">Принять</button>
-                        </div>
-                    </div>
+                    <!-- Отклики будут загружаться динамически -->
+                </div>
+            </div>
+
+            <!-- Отклики на вакансии (для работодателей) -->
+            <div class="profile-card" id="job-applications-section" style="display: none;">
+                <h2>Отклики на мои вакансии</h2>
+                <div class="applications-list" id="job-applications-list">
+                    <!-- Отклики будут загружаться динамически -->
                 </div>
             </div>
         </div>
@@ -155,7 +250,7 @@
                 <div class="footer-section">
                     <h4>Контакты</h4>
                     <p>Телефон: +7 (999) 123-45-67</p>
-                    <p>Email: info@jobfinder.ru</p>
+                    <p>Email: info@lime.ru</p>
                 </div>
             </div>
             <div class="footer-bottom">
@@ -164,6 +259,459 @@
         </div>
     </footer>
 
+    <script>
+        // Функции для работы с профилем
+        function getCurrentUser() {
+            const userData = localStorage.getItem('currentUser');
+            return userData ? JSON.parse(userData) : null;
+        }
+
+        function saveUserProfile(userData) {
+            const currentUser = getCurrentUser();
+            if (!currentUser) return false;
+
+            // Обновляем данные пользователя, сохраняя важные поля
+            const updatedUser = {
+                ...currentUser,
+                ...userData,
+                // Сохраняем важные поля, которые не должны теряться
+                id: currentUser.id,
+                login: currentUser.login || currentUser.username,
+                username: currentUser.username || currentUser.login,
+                registrationDate: currentUser.registrationDate
+            };
+
+            // Сохраняем обновленного пользователя в currentUser
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+            // Также обновляем в общем списке пользователей
+            updateUserInStorage(updatedUser);
+
+            return true;
+        }
+
+        function updateUserInStorage(updatedUser) {
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const userIndex = users.findIndex(user => user.id === updatedUser.id);
+            
+            if (userIndex !== -1) {
+                // Сохраняем важные поля из старой записи, которые не должны теряться
+                const oldUser = users[userIndex];
+                updatedUser.password = oldUser.password;
+                updatedUser.login = oldUser.login || updatedUser.login;
+                updatedUser.username = oldUser.username || oldUser.login || updatedUser.username;
+                updatedUser.registrationDate = oldUser.registrationDate || updatedUser.registrationDate;
+                updatedUser.avatar = updatedUser.avatar || oldUser.avatar;
+                
+                // Обновляем пользователя в массиве
+                users[userIndex] = updatedUser;
+                
+                // Сохраняем обновленный массив в localStorage
+                localStorage.setItem('users', JSON.stringify(users));
+                console.log('✅ Данные пользователя обновлены в localStorage');
+            } else {
+                console.warn('Пользователь не найден в списке пользователей');
+            }
+        }
+
+        function loadUserProfile() {
+            // Получаем данные пользователя напрямую из localStorage
+            const userData = localStorage.getItem('currentUser');
+            if (!userData) {
+                console.log('Нет данных пользователя в localStorage');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            const user = JSON.parse(userData);
+            console.log('Загрузка данных пользователя из localStorage:', user);
+            console.log('ФИО:', user.fio);
+            console.log('Телефон:', user.phone);
+
+            // Заполняем данные в режиме просмотра из localStorage
+            const viewFio = document.getElementById('viewFio');
+            const viewPhone = document.getElementById('viewPhone');
+            const viewEmail = document.getElementById('viewEmail');
+            const viewBirthDate = document.getElementById('viewBirthDate');
+            
+            console.log('Элементы найдены:', {
+                viewFio: !!viewFio,
+                viewPhone: !!viewPhone,
+                viewEmail: !!viewEmail,
+                viewBirthDate: !!viewBirthDate
+            });
+            
+            // Обновляем элементы, если они существуют
+            if (viewFio) {
+                viewFio.textContent = user.fio || 'Не указано';
+                console.log('Обновлено ФИО:', user.fio || 'Не указано');
+            } else {
+                console.error('Элемент viewFio не найден!');
+            }
+            
+            if (viewPhone) {
+                viewPhone.textContent = user.phone || 'Не указано';
+                console.log('Обновлен телефон:', user.phone || 'Не указано');
+            } else {
+                console.error('Элемент viewPhone не найден!');
+            }
+            
+            if (viewEmail) {
+                viewEmail.textContent = user.email || 'Не указано';
+                console.log('Обновлен email:', user.email || 'Не указано');
+            } else {
+                console.error('Элемент viewEmail не найден!');
+            }
+            
+            if (viewBirthDate) {
+                viewBirthDate.textContent = user.birthDate ? formatDate(user.birthDate) : 'Не указано';
+                console.log('Обновлена дата рождения:', user.birthDate ? formatDate(user.birthDate) : 'Не указано');
+            } else {
+                console.error('Элемент viewBirthDate не найден!');
+            }
+
+            // Загружаем аватар
+            if (user.avatar) {
+                loadAvatar(user.avatar);
+            }
+
+            // Заполняем форму редактирования
+            const editFio = document.getElementById('editFio');
+            const editPhone = document.getElementById('editPhone');
+            const editEmail = document.getElementById('editEmail');
+            const editBirthDate = document.getElementById('editBirthDate');
+            
+            if (editFio) {
+                editFio.value = user.fio || '';
+            }
+            if (editPhone) {
+                editPhone.value = user.phone || '';
+            }
+            if (editEmail) {
+                editEmail.value = user.email || '';
+            }
+            if (editBirthDate) {
+                editBirthDate.value = user.birthDate || '';
+            }
+        }
+
+        function loadAvatar(avatarData) {
+            const avatarImage = document.getElementById('avatarImage');
+            if (avatarData) {
+                // Если есть сохраненный аватар, используем его
+                avatarImage.src = avatarData;
+            } else {
+                // Иначе используем аватар по умолчанию
+                avatarImage.src = 'images/default-avatar.jpg';
+            }
+        }
+
+        function changeAvatar() {
+            const avatarInput = document.getElementById('avatarInput');
+            avatarInput.click();
+        }
+
+        function handleAvatarChange(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            // Проверяем тип файла
+            if (!file.type.startsWith('image/')) {
+                showNotification('Пожалуйста, выберите изображение!', 'error');
+                return;
+            }
+
+            // Проверяем размер файла (максимум 5 МБ)
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('Размер изображения не должен превышать 5 МБ!', 'error');
+                return;
+            }
+
+            // Читаем файл как Data URL
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const avatarData = e.target.result;
+                
+                // Сохраняем аватар в профиле пользователя
+                const userData = {
+                    avatar: avatarData
+                };
+
+                if (saveUserProfile(userData)) {
+                    // Обновляем отображение аватара
+                    loadAvatar(avatarData);
+                    showNotification('Аватар успешно изменен!', 'success');
+                } else {
+                    showNotification('Ошибка при сохранении аватара', 'error');
+                }
+            };
+
+            reader.onerror = function() {
+                showNotification('Ошибка при чтении файла', 'error');
+            };
+
+            reader.readAsDataURL(file);
+            
+            // Сбрасываем значение input, чтобы можно было выбрать тот же файл снова
+            event.target.value = '';
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU');
+        }
+
+        function switchToEditMode() {
+            // Получаем актуальные данные пользователя перед открытием формы редактирования
+            const user = getCurrentUser();
+            if (user) {
+                // Заполняем форму редактирования актуальными данными
+                document.getElementById('editFio').value = user.fio || '';
+                document.getElementById('editPhone').value = user.phone || '';
+                document.getElementById('editEmail').value = user.email || '';
+                document.getElementById('editBirthDate').value = user.birthDate || '';
+            }
+            
+            document.getElementById('profileView').classList.add('hidden');
+            document.getElementById('editProfileForm').classList.add('active');
+        }
+
+        function switchToViewMode() {
+            document.getElementById('profileView').classList.remove('hidden');
+            document.getElementById('editProfileForm').classList.remove('active');
+        }
+
+        function saveProfile() {
+            const fio = document.getElementById('editFio').value.trim();
+            const phone = document.getElementById('editPhone').value.trim();
+            const email = document.getElementById('editEmail').value.trim();
+            const birthDate = document.getElementById('editBirthDate').value;
+
+            // Валидация
+            if (!fio) {
+                alert('Пожалуйста, введите ФИО');
+                return;
+            }
+
+            if (!phone) {
+                alert('Пожалуйста, введите телефон');
+                return;
+            }
+
+            if (!email) {
+                alert('Пожалуйста, введите email');
+                return;
+            }
+
+            // Сохраняем данные
+            const userData = {
+                fio: fio,
+                phone: phone,
+                email: email,
+                birthDate: birthDate
+            };
+
+            if (saveUserProfile(userData)) {
+                // Переключаемся в режим просмотра
+                switchToViewMode();
+                
+                // Обновляем отображение данных на странице
+                // Получаем обновленные данные пользователя
+                const updatedUser = getCurrentUser();
+                if (updatedUser) {
+                    // Обновляем все поля в режиме просмотра
+                    document.getElementById('viewFio').textContent = updatedUser.fio || 'Не указано';
+                    document.getElementById('viewPhone').textContent = updatedUser.phone || 'Не указано';
+                    document.getElementById('viewEmail').textContent = updatedUser.email || 'Не указано';
+                    document.getElementById('viewBirthDate').textContent = updatedUser.birthDate ? formatDate(updatedUser.birthDate) : 'Не указано';
+                    
+                    // Обновляем аватар, если он был изменен
+                    if (updatedUser.avatar) {
+                        loadAvatar(updatedUser.avatar);
+                    }
+                }
+                
+                // Показываем уведомление
+                showNotification('Профиль успешно обновлен!', 'success');
+            } else {
+                showNotification('Ошибка при сохранении профиля', 'error');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Создаем элемент уведомления
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            
+            // Стили для уведомления
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 6px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            `;
+            
+            // Цвета в зависимости от типа
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                info: '#2563eb'
+            };
+            
+            notification.style.backgroundColor = colors[type] || colors.info;
+            
+            // Добавляем в DOM
+            document.body.appendChild(notification);
+            
+            // Анимация появления
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Удаляем через 3 секунды
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Загружаем данные профиля сразу
+            loadUserProfile();
+            
+            // Также загружаем данные после небольшой задержки, чтобы убедиться, что все скрипты загружены
+            setTimeout(function() {
+                loadUserProfile();
+            }, 100);
+
+            // Обработчики кнопок
+            document.getElementById('editProfileBtn').addEventListener('click', switchToEditMode);
+            document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+            document.getElementById('cancelEditBtn').addEventListener('click', switchToViewMode);
+
+            // Обработчик кнопки смены аватара
+            document.querySelector('.change-avatar-btn').addEventListener('click', changeAvatar);
+            
+            // Обработчик клика по аватару для смены
+            document.getElementById('avatarImage').addEventListener('click', changeAvatar);
+            
+            // Обработчик выбора файла аватара
+            document.getElementById('avatarInput').addEventListener('change', handleAvatarChange);
+
+            // Обработчик кнопки выхода
+            document.querySelector('.logout-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('currentUser');
+                sessionStorage.removeItem('isLoggedIn');
+                window.location.href = 'login.html';
+            });
+
+            // Маска для телефона в форме редактирования
+            const phoneInput = document.getElementById('editPhone');
+            if (phoneInput) {
+                phoneInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length > 0) {
+                        if (value.length <= 1) {
+                            value = '+7 (' + value;
+                        } else if (value.length <= 4) {
+                            value = '+7 (' + value.slice(1);
+                        } else if (value.length <= 7) {
+                            value = '+7 (' + value.slice(1, 4) + ') ' + value.slice(4);
+                        } else if (value.length <= 9) {
+                            value = '+7 (' + value.slice(1, 4) + ') ' + value.slice(4, 7) + '-' + value.slice(7);
+                        } else {
+                            value = '+7 (' + value.slice(1, 4) + ') ' + value.slice(4, 7) + '-' + value.slice(7, 9) + '-' + value.slice(9, 11);
+                        }
+                    }
+                    e.target.value = value;
+                });
+            }
+        });
+    </script>
+
     <script src="js/script.js"></script>
+    <script>
+        // Дополнительная загрузка данных после загрузки всех скриптов
+        function forceLoadUserProfile() {
+            console.log('Принудительная загрузка профиля пользователя');
+            const userData = localStorage.getItem('currentUser');
+            if (!userData) {
+                console.log('Нет данных пользователя в localStorage');
+                return;
+            }
+            
+            try {
+                const user = JSON.parse(userData);
+                console.log('Данные пользователя:', user);
+                
+                // Обновляем элементы напрямую
+                const viewFio = document.getElementById('viewFio');
+                const viewPhone = document.getElementById('viewPhone');
+                const viewEmail = document.getElementById('viewEmail');
+                const viewBirthDate = document.getElementById('viewBirthDate');
+                
+                if (viewFio) {
+                    viewFio.textContent = user.fio || 'Не указано';
+                    console.log('✅ ФИО обновлено:', user.fio || 'Не указано');
+                }
+                
+                if (viewPhone) {
+                    viewPhone.textContent = user.phone || 'Не указано';
+                    console.log('✅ Телефон обновлен:', user.phone || 'Не указано');
+                }
+                
+                if (viewEmail) {
+                    viewEmail.textContent = user.email || 'Не указано';
+                    console.log('✅ Email обновлен:', user.email || 'Не указано');
+                }
+                
+                if (viewBirthDate) {
+                    if (user.birthDate) {
+                        const date = new Date(user.birthDate);
+                        viewBirthDate.textContent = date.toLocaleDateString('ru-RU');
+                    } else {
+                        viewBirthDate.textContent = 'Не указано';
+                    }
+                    console.log('✅ Дата рождения обновлена');
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке профиля:', error);
+            }
+        }
+        
+        // Вызываем функцию несколько раз для надежности
+        window.addEventListener('load', function() {
+            console.log('Страница полностью загружена, загружаем профиль...');
+            setTimeout(forceLoadUserProfile, 100);
+            setTimeout(forceLoadUserProfile, 500);
+            setTimeout(forceLoadUserProfile, 1000);
+        });
+        
+        // Также вызываем при DOMContentLoaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                setTimeout(forceLoadUserProfile, 200);
+            });
+        } else {
+            // DOM уже загружен
+            setTimeout(forceLoadUserProfile, 100);
+        }
+    </script>
 </body>
 </html>

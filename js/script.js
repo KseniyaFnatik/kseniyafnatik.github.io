@@ -1,3 +1,38 @@
+// Список существующих страниц
+const existingPages = [
+    'index.html',
+    'about.html',
+    'contacts.html',
+    'job-search.html',
+    'login.html',
+    'profile.html',
+    'resume-create.html',
+    '404.html',
+    'admin.html'
+];
+
+// Проверка существования страницы при загрузке
+(function() {
+    // Получаем имя текущей страницы
+    let currentPage = window.location.pathname.split('/').pop();
+    
+    // Если страница не указана или это корень, считаем что это index.html
+    if (!currentPage || currentPage === '' || currentPage === '/') {
+        currentPage = 'index.html';
+    }
+    
+    // Если мы уже на странице 404, не проверяем
+    if (currentPage === '404.html') {
+        return;
+    }
+    
+    // Проверяем, существует ли страница в списке
+    if (currentPage.endsWith('.html') && !existingPages.includes(currentPage)) {
+        // Перенаправляем на страницу 404
+        window.location.replace('404.html');
+    }
+})();
+
 // Мобильное меню
 const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
@@ -65,7 +100,10 @@ if (tabBtns.length > 0) {
             
             // Добавляем активный класс к выбранной кнопке и форме
             btn.classList.add('active');
-            document.getElementById(tabName + '-form').classList.add('active');
+            const targetForm = document.getElementById(tabName + '-form');
+            if (targetForm) {
+                targetForm.classList.add('active');
+            }
         });
     });
 }
@@ -97,22 +135,85 @@ if (filtersToggle && filtersPanel) {
 }
 
 // Работа с пользователями
-// Функция для загрузки пользователей из localStorage
-function loadUsers() {
+// Функция для загрузки пользователей из файла user.json
+async function loadUsersFromFile() {
+    try {
+        const response = await fetch('data/user.json');
+        if (response.ok) {
+            const users = await response.json();
+            if (Array.isArray(users)) {
+                console.log('Данные пользователей загружены из user.json');
+                // НЕ сохраняем в localStorage, чтобы не перезаписывать новые регистрации
+                return users;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки пользователей из user.json:', error);
+    }
+    return null;
+}
+
+// Функция для загрузки пользователей из localStorage или файла
+async function loadUsers() {
+    // Всегда загружаем админа из файла, чтобы гарантировать актуальные данные
+    const usersFromFile = await loadUsersFromFile();
     const usersFromStorage = localStorage.getItem('users');
+    
+    let users = [];
+    
+    // Если есть данные в localStorage, используем их
     if (usersFromStorage) {
         try {
-            const users = JSON.parse(usersFromStorage);
-            if (Array.isArray(users)) {
-                console.log('Данные пользователей загружены из localStorage');
-                return users;
+            const parsed = JSON.parse(usersFromStorage);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                users = parsed;
+                console.log(`Загружено ${users.length} пользователей из localStorage`);
             }
         } catch (e) {
             console.error('Ошибка парсинга данных из localStorage:', e);
         }
     }
     
-    return [];
+    // Если есть данные из файла, обновляем админа в списке пользователей
+    if (usersFromFile && Array.isArray(usersFromFile) && usersFromFile.length > 0) {
+        console.log(`Загружено ${usersFromFile.length} пользователей из user.json`);
+        
+        // Находим админа в файле
+        const adminFromFile = usersFromFile.find(u => u.status === 'admin');
+        
+        if (adminFromFile) {
+            // Удаляем старую запись админа из localStorage, если она есть
+            users = users.filter(u => {
+                const userLogin = (u.login || u.username || '').toLowerCase();
+                const adminLogin = (adminFromFile.login || adminFromFile.username || '').toLowerCase();
+                return userLogin !== adminLogin;
+            });
+            
+            // Добавляем актуального админа из файла
+            users.push(adminFromFile);
+            console.log('Админ обновлен из user.json');
+        } else {
+            // Если в файле нет админа, но есть другие пользователи, добавляем их
+            usersFromFile.forEach(fileUser => {
+                const exists = users.find(u => {
+                    const userLogin = (u.login || u.username || '').toLowerCase();
+                    const fileUserLogin = (fileUser.login || fileUser.username || '').toLowerCase();
+                    return userLogin === fileUserLogin;
+                });
+                if (!exists) {
+                    users.push(fileUser);
+                }
+            });
+        }
+        
+        // Обновляем localStorage с объединенными данными
+        localStorage.setItem('users', JSON.stringify(users));
+    } else if (users.length === 0) {
+        // Если нет данных ни в localStorage, ни в файле, возвращаем пустой массив
+        return [];
+    }
+    
+    return users;
 }
 
 // Функция для сохранения пользователей (только JavaScript, localStorage)
@@ -130,9 +231,9 @@ function saveUsers(users) {
 }
 
 // Функция регистрации пользователя
-function registerUser(fio, phone, password) {
-    // Загружаем пользователей из localStorage
-    const users = loadUsers();
+async function registerUser(fio, username, phone, password, status = 'applicant') {
+    // Загружаем пользователей из файла user.json или localStorage
+    const users = await loadUsers();
     
     // Убеждаемся, что users - это массив
     if (!Array.isArray(users)) {
@@ -140,18 +241,23 @@ function registerUser(fio, phone, password) {
         return false;
     }
     
-    // Нормализуем телефон для сравнения
-    const normalizePhone = (phone) => phone.replace(/[\s\(\)\-]/g, '');
-    const normalizedInputPhone = normalizePhone(phone);
+    // Нормализуем логин (приводим к нижнему регистру и убираем пробелы)
+    const normalizedUsername = username.trim().toLowerCase();
     
-    // Проверяем, не зарегистрирован ли уже пользователь с таким телефоном
+    // Проверяем формат логина
+    if (!/^[a-zA-Z0-9_]{3,}$/.test(normalizedUsername)) {
+        showNotification('Логин должен содержать минимум 3 символа (буквы, цифры, _)', 'error');
+        return false;
+    }
+    
+    // Проверяем, не зарегистрирован ли уже пользователь с таким логином
     const existingUser = users.find(user => {
-        const normalizedUserPhone = normalizePhone(user.phone);
-        return normalizedUserPhone === normalizedInputPhone;
+        const userLogin = (user.login || user.username || '').toLowerCase();
+        return userLogin === normalizedUsername;
     });
     
     if (existingUser) {
-        showNotification('Пользователь с таким телефоном уже зарегистрирован!', 'error');
+        showNotification('Пользователь с таким логином уже зарегистрирован!', 'error');
         return false;
     }
     
@@ -159,8 +265,11 @@ function registerUser(fio, phone, password) {
     const newUser = {
         id: Date.now().toString(),
         fio: fio.trim(),
+        login: normalizedUsername,
+        username: normalizedUsername, // Дублируем для совместимости
         phone: phone.trim(),
         password: password, // В реальном приложении пароль должен быть захеширован
+        status: status, // Статус пользователя: 'applicant' (соискатель), 'employer' (работодатель) или 'admin' (админ)
         registrationDate: new Date().toISOString()
     };
     
@@ -178,11 +287,59 @@ function registerUser(fio, phone, password) {
     return true;
 }
 
+// Функция входа для сотрудника (админа)
+async function employeeLogin(username, password) {
+    try {
+        // Загружаем пользователей из файла
+        const response = await fetch('data/user.json');
+        if (!response.ok) {
+            showNotification('Ошибка загрузки данных!', 'error');
+            return false;
+        }
+        
+        const users = await response.json();
+        if (!Array.isArray(users)) {
+            showNotification('Ошибка формата данных!', 'error');
+            return false;
+        }
+        
+        // Ищем пользователя по логину и паролю
+        const normalizedUsername = username.trim().toLowerCase();
+        const adminUser = users.find(u => {
+            const userLogin = (u.login || u.username || '').toLowerCase();
+            return userLogin === normalizedUsername && u.password === password;
+        });
+        
+        // Проверяем статус пользователя из базы данных
+        const userStatus = adminUser?.status || 'applicant';
+        const isAdmin = userStatus === 'admin';
+        
+        if (isAdmin && adminUser) {
+            sessionStorage.setItem('adminLoggedIn', 'true');
+            showNotification('Вход выполнен успешно!', 'success');
+            
+            // Перенаправляем на админ-панель
+            setTimeout(() => {
+                window.location.href = 'admin.html';
+            }, 1000);
+            
+            return true;
+        } else {
+            showNotification('Неверный логин или пароль!', 'error');
+            return false;
+        }
+    } catch (error) {
+        console.error('Ошибка входа в админ-панель:', error);
+        showNotification('Ошибка подключения к серверу!', 'error');
+        return false;
+    }
+}
+
 // Функция авторизации пользователя
-function loginUser(phone, password) {
-    // Загружаем пользователей из localStorage
+async function loginUser(username, password) {
+    // Загружаем пользователей из файла user.json или localStorage
     console.log('Загрузка пользователей для проверки входа...');
-    const users = loadUsers();
+    const users = await loadUsers();
     
     // Проверяем, что users - это массив
     if (!Array.isArray(users)) {
@@ -195,27 +352,59 @@ function loginUser(phone, password) {
         return false;
     }
     
-    // Нормализуем телефон для сравнения (убираем пробелы, скобки, дефисы)
-    const normalizePhone = (phone) => phone.replace(/[\s\(\)\-]/g, '');
-    const normalizedInputPhone = normalizePhone(phone);
+    console.log('Загружено пользователей:', users.length);
+    console.log('Список пользователей:', users.map(u => ({ login: u.login || u.username, status: u.status })));
     
-    // Ищем пользователя по телефону и паролю в данных из user.json
+    // Нормализуем логин (приводим к нижнему регистру и убираем пробелы)
+    const normalizedUsername = username.trim().toLowerCase();
+    console.log('Попытка входа с логином:', normalizedUsername);
+    
+    // Ищем пользователя по логину и паролю в данных из user.json или localStorage
     const user = users.find(u => {
-        const normalizedUserPhone = normalizePhone(u.phone);
-        return normalizedUserPhone === normalizedInputPhone && u.password === password;
+        const userLogin = (u.login || u.username || '').toLowerCase();
+        const passwordMatch = u.password === password;
+        console.log(`Проверка пользователя: логин=${userLogin}, совпадение логина=${userLogin === normalizedUsername}, совпадение пароля=${passwordMatch}`);
+        return userLogin === normalizedUsername && passwordMatch;
     });
     
     if (user) {
-        console.log('Пользователь найден:', user.fio);
-        // Сохраняем данные авторизованного пользователя (без пароля)
+        console.log('Пользователь найден:', user);
+        console.log('ФИО пользователя:', user.fio);
+        console.log('Телефон пользователя:', user.phone);
+        
+        // Проверяем статус пользователя из базы данных
+        const userStatus = user.status || 'applicant';
+        const isAdmin = userStatus === 'admin';
+        
+        if (isAdmin) {
+            // Если это админ, сохраняем флаг в sessionStorage и перенаправляем на админ-панель
+            sessionStorage.setItem('adminLoggedIn', 'true');
+            showNotification('Вход выполнен успешно!', 'success');
+            
+            setTimeout(() => {
+                window.location.href = 'admin.html';
+            }, 1000);
+            
+            return true;
+        }
+        
+        // Сохраняем все данные авторизованного пользователя (без пароля)
         const userData = {
             id: user.id,
             fio: user.fio,
+            login: user.login || user.username,
+            username: user.login || user.username,
             phone: user.phone,
+            email: user.email || '',
+            birthDate: user.birthDate || '',
+            avatar: user.avatar || '',
+            status: userStatus,
             registrationDate: user.registrationDate
         };
+        console.log('Сохранение данных пользователя в currentUser:', userData);
         localStorage.setItem('currentUser', JSON.stringify(userData));
         sessionStorage.setItem('isLoggedIn', 'true');
+        console.log('Данные сохранены в localStorage');
         
         showNotification('Вход выполнен успешно!', 'success');
         
@@ -226,9 +415,97 @@ function loginUser(phone, password) {
         
         return true;
     } else {
-        showNotification('Неверный телефон или пароль!', 'error');
+        showNotification('Неверный логин или пароль!', 'error');
         return false;
     }
+}
+
+
+function saveUserProfile(userData) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return false;
+
+    // Обновляем данные пользователя
+    const updatedUser = {
+        ...currentUser,
+        ...userData
+    };
+
+    // Сохраняем обновленного пользователя
+    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+    // Также обновляем в общем списке пользователей
+    updateUserInStorage(updatedUser);
+
+    return true;
+}
+
+// Функция для обновления пользователя в основном хранилище
+function updateUserInStorage(updatedUser) {
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const userIndex = users.findIndex(user => user.id === updatedUser.id);
+    
+    if (userIndex !== -1) {
+        // Сохраняем важные поля из старой записи, которые не должны теряться
+        const oldUser = users[userIndex];
+        updatedUser.password = oldUser.password;
+        updatedUser.login = oldUser.login || updatedUser.login;
+        updatedUser.username = oldUser.username || oldUser.login || updatedUser.username;
+        updatedUser.registrationDate = oldUser.registrationDate || updatedUser.registrationDate;
+        updatedUser.avatar = updatedUser.avatar || oldUser.avatar;
+        updatedUser.status = oldUser.status || updatedUser.status || 'applicant';
+        
+        // Обновляем пользователя в массиве
+        users[userIndex] = updatedUser;
+        
+        // Сохраняем обновленный массив в localStorage
+        localStorage.setItem('users', JSON.stringify(users));
+        console.log('✅ Данные пользователя обновлены в localStorage');
+    } else {
+        console.warn('Пользователь не найден в списке пользователей');
+    }
+}
+
+// Функция для загрузки профиля пользователя
+function loadUserProfile() {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    // Обновляем данные в профиле
+    const fioElement = document.querySelector('.profile-details h3');
+    const phoneElement = document.querySelector('.profile-details p strong');
+    
+    if (fioElement) {
+        fioElement.textContent = user.fio || 'Не указано';
+    }
+    
+    // Обновляем телефон, email и дату рождения если есть соответствующие элементы
+    const profileDetails = document.querySelector('.profile-details');
+    if (profileDetails) {
+        // Ищем или создаем элементы для отображения данных
+        let birthDateElement = profileDetails.querySelector('#viewBirthDate');
+        let phoneElement = profileDetails.querySelector('#viewPhone');
+        let emailElement = profileDetails.querySelector('#viewEmail');
+        
+        if (birthDateElement) {
+            birthDateElement.textContent = user.birthDate ? formatDate(user.birthDate) : 'Не указано';
+        }
+        
+        if (phoneElement) {
+            phoneElement.textContent = user.phone || 'Не указано';
+        }
+        
+        if (emailElement) {
+            emailElement.textContent = user.email || 'Не указано';
+        }
+    }
+}
+
+// Вспомогательная функция для форматирования даты
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU');
 }
 
 // Функция выхода из системы
@@ -249,6 +526,11 @@ function isLoggedIn() {
     return sessionStorage.getItem('isLoggedIn') === 'true' && getCurrentUser() !== null;
 }
 
+// Функция проверки авторизации админа
+function isAdminLoggedIn() {
+    return sessionStorage.getItem('adminLoggedIn') === 'true';
+}
+
 // Валидация форм
 const forms = document.querySelectorAll('form');
 
@@ -259,6 +541,7 @@ forms.forEach(form => {
         // Обработка формы регистрации
         if (form.id === 'registerForm') {
             const fio = form.querySelector('#register-fio').value.trim();
+            const username = form.querySelector('#register-username').value.trim();
             const phone = form.querySelector('#register-phone').value.trim();
             const password = form.querySelector('#register-password').value;
             const confirmPassword = form.querySelector('#register-password-confirm').value;
@@ -266,6 +549,21 @@ forms.forEach(form => {
             // Валидация
             if (!fio) {
                 showNotification('Пожалуйста, введите ФИО!', 'error');
+                return;
+            }
+            
+            if (!username) {
+                showNotification('Пожалуйста, введите логин!', 'error');
+                return;
+            }
+            
+            if (username.length < 3) {
+                showNotification('Логин должен содержать минимум 3 символа!', 'error');
+                return;
+            }
+            
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                showNotification('Логин может содержать только буквы, цифры и символ подчеркивания!', 'error');
                 return;
             }
             
@@ -279,22 +577,36 @@ forms.forEach(form => {
                 return;
             }
             
+            // Получаем выбранный статус
+            const selectedStatus = form.querySelector('input[name="user-status"]:checked')?.value || 'applicant';
+            
             // Регистрация
-            const success = registerUser(fio, phone, password);
-            if (success) {
-                // Переключаемся на вкладку входа
-                setTimeout(() => {
-                    document.querySelector('[data-tab="login"]').click();
-                    form.reset();
-                }, 1500);
-            }
+            (async () => {
+                const success = await registerUser(fio, username, phone, password, selectedStatus);
+                if (success) {
+                    // Переключаемся на вкладку входа
+                    setTimeout(() => {
+                        document.querySelector('[data-tab="login"]').click();
+                        form.reset();
+                    }, 1500);
+                }
+            })();
         }
         // Обработка формы входа
         else if (form.id === 'loginForm') {
-            const phone = form.querySelector('#login-phone').value.trim();
+            const username = form.querySelector('#login-username').value.trim();
             const password = form.querySelector('#login-password').value;
             
-            loginUser(phone, password);
+            // Валидация
+            if (!username) {
+                showNotification('Пожалуйста, введите логин!', 'error');
+                return;
+            }
+            
+            // Используем async/await для асинхронной функции
+            (async () => {
+                await loginUser(username, password);
+            })();
         }
         // Обработка формы резюме
         else if (form.id === 'resumeForm') {
@@ -341,6 +653,14 @@ function saveResume(form) {
     if (!currentUser) {
         showNotification('Необходимо войти в систему!', 'error');
         window.location.href = 'login.html';
+        return;
+    }
+
+    // Проверяем, что пользователь не является работодателем
+    const userStatus = currentUser.status || 'applicant';
+    if (userStatus === 'employer') {
+        showNotification('Работодатели не могут создавать резюме!', 'error');
+        window.location.href = 'profile.html';
         return;
     }
 
@@ -468,10 +788,10 @@ function getResumeById(resumeId) {
 
 // ========== РАБОТА С ВАКАНСИЯМИ ==========
 
-// Загрузка вакансий из jobs.json
+// Загрузка вакансий из data/jobs.json
 async function loadJobs() {
     try {
-        const response = await fetch('jobs.json');
+        const response = await fetch('data/jobs.json');
         if (response.ok) {
             const jobs = await response.json();
             if (Array.isArray(jobs)) {
@@ -499,6 +819,387 @@ async function loadJobs() {
 async function getJobById(jobId) {
     const jobs = await loadJobs();
     return jobs.find(job => job.id === jobId);
+}
+
+// Сохранение вакансий в localStorage
+function saveJobs(jobs) {
+    if (!Array.isArray(jobs)) {
+        console.error('Ошибка: jobs должен быть массивом');
+        return false;
+    }
+    localStorage.setItem('jobs', JSON.stringify(jobs));
+    console.log('✅ Вакансии сохранены в localStorage');
+    return true;
+}
+
+// Загрузка вакансий работодателя
+async function loadEmployerJobs() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+    
+    const allJobs = await loadJobs();
+    const employerJobs = allJobs.filter(job => job.employerId === currentUser.id);
+    const tbody = document.getElementById('jobs-table-body');
+    
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (employerJobs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">У вас пока нет вакансий</td></tr>';
+        return;
+    }
+    
+    // Загружаем отклики для подсчета
+    const applications = loadApplications();
+    
+    employerJobs.forEach((job, index) => {
+        const row = document.createElement('tr');
+        const date = new Date(job.datePosted).toLocaleDateString('ru-RU');
+        const jobApplications = applications.filter(app => app.jobId === job.id);
+        const applicationsCount = jobApplications.length;
+        
+        row.innerHTML = `
+            <td>${String(index + 1).padStart(3, '0')}</td>
+            <td>${job.title || 'Без названия'}</td>
+            <td>${job.company || 'Не указана'}</td>
+            <td>${date}</td>
+            <td>${applicationsCount}</td>
+            <td>
+                <button class="btn btn-small btn-primary view-job-applications" data-job-id="${job.id}">Просмотреть отклики</button>
+                <button class="btn btn-small btn-danger delete-job" data-job-id="${job.id}">Удалить</button>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+    
+    // Добавляем обработчики
+    document.querySelectorAll('.view-job-applications').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const jobId = e.target.getAttribute('data-job-id');
+            viewJobApplications(jobId);
+        });
+    });
+    
+    document.querySelectorAll('.delete-job').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const jobId = e.target.getAttribute('data-job-id');
+            if (confirm('Вы уверены, что хотите удалить эту вакансию?')) {
+                deleteJob(jobId);
+                loadEmployerJobs();
+                loadJobApplications();
+                showNotification('Вакансия удалена', 'success');
+            }
+        });
+    });
+}
+
+// Создание вакансии
+async function createJob(jobData) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showNotification('Необходимо войти в систему!', 'error');
+        return false;
+    }
+    
+    const userStatus = currentUser.status || 'applicant';
+    if (userStatus !== 'employer') {
+        showNotification('Только работодатели могут создавать вакансии!', 'error');
+        return false;
+    }
+    
+    const allJobs = await loadJobs();
+    
+    const newJob = {
+        id: 'job_' + Date.now().toString(),
+        employerId: currentUser.id,
+        title: jobData.title,
+        company: jobData.company || currentUser.fio,
+        location: jobData.location,
+        salary: jobData.salary,
+        salaryMin: parseInt(jobData.salary.replace(/\D/g, '')) || 0,
+        description: jobData.description,
+        tags: jobData.tags ? jobData.tags.split(',').map(t => t.trim()) : [],
+        employmentType: jobData.employmentType || 'Полная занятость',
+        datePosted: new Date().toISOString(),
+        requirements: jobData.requirements || ''
+    };
+    
+    allJobs.push(newJob);
+    
+    if (saveJobs(allJobs)) {
+        showNotification('Вакансия успешно создана!', 'success');
+        loadEmployerJobs();
+        return true;
+    }
+    
+    return false;
+}
+
+// Удаление вакансии
+async function deleteJob(jobId) {
+    const allJobs = await loadJobs();
+    const filteredJobs = allJobs.filter(job => job.id !== jobId);
+    saveJobs(filteredJobs);
+    return true;
+}
+
+// Просмотр откликов на вакансию
+function viewJobApplications(jobId) {
+    const applications = loadApplications();
+    const jobApplications = applications.filter(app => app.jobId === jobId);
+    
+    if (jobApplications.length === 0) {
+        showNotification('На эту вакансию пока нет откликов', 'info');
+        return;
+    }
+    
+    // Создаем модальное окно
+    const modal = document.createElement('div');
+    modal.className = 'resume-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 10000;
+        overflow-y: auto;
+        padding: 20px;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        position: relative;
+    `;
+    
+    let html = `
+        <button class="close-modal" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+        <h2>Отклики на вакансию</h2>
+        <div style="margin-top: 20px;">
+    `;
+    
+    jobApplications.forEach((app, index) => {
+        const date = new Date(app.createdAt).toLocaleDateString('ru-RU');
+        const resume = getResumeById(app.resumeId);
+        const user = getCurrentUser();
+        
+        html += `
+            <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                <h3>Отклик #${index + 1}</h3>
+                <p><strong>Дата отклика:</strong> ${date}</p>
+                ${resume ? `<p><strong>Соискатель:</strong> ${resume.fullName || 'Не указано'}</p>` : ''}
+                ${resume ? `<p><strong>Телефон:</strong> ${resume.phone || 'Не указан'}</p>` : ''}
+                ${resume ? `<p><strong>Email:</strong> ${resume.email || 'Не указан'}</p>` : ''}
+                <button class="btn btn-small btn-primary view-resume-from-app" data-resume-id="${app.resumeId}" style="margin-top: 10px;">Просмотреть резюме</button>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    content.innerHTML = html;
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Обработчики
+    content.querySelector('.close-modal').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+    
+    // Просмотр резюме
+    content.querySelectorAll('.view-resume-from-app').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const resumeId = e.target.getAttribute('data-resume-id');
+            document.body.removeChild(modal);
+            viewResume(resumeId);
+        });
+    });
+}
+
+// Показ модального окна создания вакансии
+function showCreateJobModal() {
+    const modal = document.createElement('div');
+    modal.className = 'resume-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 10000;
+        overflow-y: auto;
+        padding: 20px;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+        max-width: 600px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        position: relative;
+    `;
+    
+    content.innerHTML = `
+        <button class="close-modal" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+        <h2>Создать вакансию</h2>
+        <form id="createJobForm" style="margin-top: 20px;">
+            <div class="form-group">
+                <label for="job-title">Название вакансии *</label>
+                <input type="text" id="job-title" name="title" placeholder="Например: Frontend разработчик" required>
+            </div>
+            <div class="form-group">
+                <label for="job-company">Название компании</label>
+                <input type="text" id="job-company" name="company" placeholder="Название вашей компании">
+            </div>
+            <div class="form-group">
+                <label for="job-location">Местоположение *</label>
+                <input type="text" id="job-location" name="location" placeholder="Москва, Санкт-Петербург, Удаленно" required>
+            </div>
+            <div class="form-group">
+                <label for="job-salary">Зарплата *</label>
+                <input type="text" id="job-salary" name="salary" placeholder="от 80 000 ₽" required>
+            </div>
+            <div class="form-group">
+                <label for="job-description">Описание вакансии *</label>
+                <textarea id="job-description" name="description" rows="5" placeholder="Опишите вакансию, требования, условия работы" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="job-requirements">Требования</label>
+                <textarea id="job-requirements" name="requirements" rows="3" placeholder="Опыт работы, навыки, образование"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="job-tags">Теги (через запятую)</label>
+                <input type="text" id="job-tags" name="tags" placeholder="React, TypeScript, JavaScript">
+            </div>
+            <div class="form-group">
+                <label for="job-employment-type">Тип занятости</label>
+                <select id="job-employment-type" name="employmentType">
+                    <option value="Полная занятость">Полная занятость</option>
+                    <option value="Частичная занятость">Частичная занятость</option>
+                    <option value="Удаленная работа">Удаленная работа</option>
+                    <option value="Проектная работа">Проектная работа</option>
+                </select>
+            </div>
+            <div class="form-actions" style="margin-top: 20px;">
+                <button type="submit" class="btn btn-primary">Создать вакансию</button>
+                <button type="button" class="btn btn-secondary close-modal-btn">Отмена</button>
+            </div>
+        </form>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Обработчики
+    const closeModal = () => {
+        document.body.removeChild(modal);
+    };
+    
+    content.querySelector('.close-modal').addEventListener('click', closeModal);
+    const closeBtn = content.querySelector('.close-modal-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Обработка формы
+    const form = content.querySelector('#createJobForm');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const jobData = {
+            title: formData.get('title'),
+            company: formData.get('company'),
+            location: formData.get('location'),
+            salary: formData.get('salary'),
+            description: formData.get('description'),
+            requirements: formData.get('requirements'),
+            tags: formData.get('tags'),
+            employmentType: formData.get('employmentType')
+        };
+        
+        const success = await createJob(jobData);
+        if (success) {
+            closeModal();
+            loadJobApplications();
+        }
+    });
+}
+
+// Загрузка откликов на вакансии работодателя
+async function loadJobApplications() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+    
+    const applications = loadApplications();
+    // Фильтруем отклики по employerId (более надежно, чем по jobId)
+    const jobApplications = applications.filter(app => app.employerId === currentUser.id);
+    
+    const allJobs = await loadJobs();
+    const employerJobs = allJobs.filter(job => job.employerId === currentUser.id);
+    
+    const applicationsList = document.getElementById('job-applications-list');
+    if (!applicationsList) return;
+    
+    applicationsList.innerHTML = '';
+    
+    if (jobApplications.length === 0) {
+        applicationsList.innerHTML = '<p style="text-align: center; padding: 20px;">На ваши вакансии пока нет откликов</p>';
+        return;
+    }
+    
+    jobApplications.forEach(application => {
+        const item = document.createElement('div');
+        item.className = 'application-item';
+        
+        const job = employerJobs.find(j => j.id === application.jobId);
+        const resume = getResumeById(application.resumeId);
+        const date = new Date(application.createdAt).toLocaleDateString('ru-RU');
+        
+        item.innerHTML = `
+            <div class="application-info">
+                <h4>${job ? job.title : 'Вакансия удалена'}</h4>
+                <p><strong>Соискатель:</strong> ${resume ? resume.fullName : 'Не указано'}</p>
+                <p><strong>Телефон:</strong> ${resume ? resume.phone : 'Не указан'}</p>
+                <p>Дата отклика: ${date}</p>
+            </div>
+            <div class="application-actions">
+                ${resume ? `<button class="btn btn-small btn-primary view-resume-from-list" data-resume-id="${application.resumeId}">Просмотреть резюме</button>` : ''}
+            </div>
+        `;
+        
+        applicationsList.appendChild(item);
+    });
+    
+    // Обработчики просмотра резюме
+    document.querySelectorAll('.view-resume-from-list').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const resumeId = e.target.getAttribute('data-resume-id');
+            viewResume(resumeId);
+        });
+    });
 }
 
 // ========== РАБОТА С ОТКЛИКАМИ ==========
@@ -567,6 +1268,7 @@ async function createApplication(jobId, resumeId) {
         userId: currentUser.id,
         jobId: jobId,
         resumeId: resumeId,
+        employerId: job.employerId || null, // ID работодателя для фильтрации откликов
         jobTitle: job.title,
         company: job.company,
         status: 'sent', // sent, viewed, invited, rejected
@@ -737,21 +1439,59 @@ if (addExperienceBtn) {
 const phoneInputs = document.querySelectorAll('input[type="tel"]');
 phoneInputs.forEach(input => {
     input.addEventListener('input', (e) => {
+        // Получаем только цифры из введенного значения
         let value = e.target.value.replace(/\D/g, '');
-        if (value.length > 0) {
-            if (value.length <= 1) {
-                value = '+7 (' + value;
-            } else if (value.length <= 4) {
-                value = '+7 (' + value.slice(1);
-            } else if (value.length <= 7) {
-                value = '+7 (' + value.slice(1, 4) + ') ' + value.slice(4);
-            } else if (value.length <= 9) {
-                value = '+7 (' + value.slice(1, 4) + ') ' + value.slice(4, 7) + '-' + value.slice(7);
-            } else {
-                value = '+7 (' + value.slice(1, 4) + ') ' + value.slice(4, 7) + '-' + value.slice(7, 9) + '-' + value.slice(9, 11);
+        
+        // Если нет цифр, очищаем поле полностью
+        if (value.length === 0) {
+            e.target.value = '';
+            return;
+        }
+        
+        // Если первая цифра не 7, заменяем на 7
+        if (value[0] !== '7') {
+            value = '7' + value.replace(/^7/, '');
+        }
+        
+        // Ограничиваем максимальное количество цифр (11: +7 и 10 цифр номера)
+        if (value.length > 11) {
+            value = value.slice(0, 11);
+        }
+        
+        // Применяем маску в зависимости от количества цифр
+        if (value.length === 1) {
+            // Только 7 - показываем только +7
+            e.target.value = '+7';
+        } else if (value.length <= 4) {
+            // +7 (XXX
+            e.target.value = '+7 (' + value.slice(1);
+        } else if (value.length <= 7) {
+            // +7 (XXX) XX
+            e.target.value = '+7 (' + value.slice(1, 4) + ') ' + value.slice(4);
+        } else if (value.length <= 9) {
+            // +7 (XXX) XXX-XX
+            e.target.value = '+7 (' + value.slice(1, 4) + ') ' + value.slice(4, 7) + '-' + value.slice(7);
+        } else {
+            // +7 (XXX) XXX-XX-XX
+            e.target.value = '+7 (' + value.slice(1, 4) + ') ' + value.slice(4, 7) + '-' + value.slice(7, 9) + '-' + value.slice(9, 11);
+        }
+    });
+    
+    // Обработка клавиши Backspace для полного удаления, когда осталось только +7
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace') {
+            const currentValue = e.target.value.replace(/\D/g, '');
+            // Если осталась только цифра 7 или меньше, разрешаем полное удаление
+            if (currentValue.length <= 1) {
+                // Разрешаем стандартное поведение Backspace
+                setTimeout(() => {
+                    const newValue = e.target.value.replace(/\D/g, '');
+                    if (newValue.length === 0) {
+                        e.target.value = '';
+                    }
+                }, 0);
             }
         }
-        e.target.value = value;
     });
 });
 
@@ -821,6 +1561,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // Загружаем данные пользователя в профиль
             loadUserProfile();
+            
+            // Обработчик кнопки создания вакансии
+            const createJobBtn = document.getElementById('create-job-btn');
+            if (createJobBtn) {
+                createJobBtn.addEventListener('click', () => {
+                    showCreateJobModal();
+                });
+            }
         }
     }
     
@@ -836,13 +1584,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Если пользователь уже авторизован и находится на странице входа, перенаправляем в профиль
-    if (window.location.pathname.includes('login.html') && isLoggedIn()) {
-        window.location.href = 'profile.html';
+    // Если пользователь уже авторизован и находится на странице входа, перенаправляем в профиль или админ-панель
+    if (window.location.pathname.includes('login.html')) {
+        if (isAdminLoggedIn()) {
+            window.location.href = 'admin.html';
+        } else if (isLoggedIn()) {
+            window.location.href = 'profile.html';
+        }
     }
     
+    
     // Инициализация всех интерактивных элементов
-    console.log('JobFinder website initialized successfully!');
+    console.log('Lime website initialized successfully!');
 });
 
 // Автозаполнение формы резюме данными пользователя
@@ -884,11 +1637,36 @@ function loadUserProfile() {
         }
     }
     
-    // Загружаем и отображаем резюме
-    loadUserResumes();
+    // Определяем статус пользователя
+    const userStatus = user?.status || 'applicant';
     
-    // Загружаем и отображаем отклики
-    loadUserApplications();
+    if (userStatus === 'employer') {
+        // Для работодателей
+        document.getElementById('create-resume-btn').style.display = 'none';
+        document.getElementById('create-job-btn').style.display = 'inline-block';
+        document.getElementById('resumes-section').style.display = 'none';
+        document.getElementById('applications-section').style.display = 'none';
+        document.getElementById('jobs-section').style.display = 'block';
+        document.getElementById('job-applications-section').style.display = 'block';
+        
+        // Загружаем вакансии работодателя
+        loadEmployerJobs();
+        // Загружаем отклики на вакансии
+        loadJobApplications();
+    } else {
+        // Для соискателей
+        document.getElementById('create-resume-btn').style.display = 'inline-block';
+        document.getElementById('create-job-btn').style.display = 'none';
+        document.getElementById('resumes-section').style.display = 'block';
+        document.getElementById('applications-section').style.display = 'block';
+        document.getElementById('jobs-section').style.display = 'none';
+        document.getElementById('job-applications-section').style.display = 'none';
+        
+        // Загружаем и отображаем резюме
+        loadUserResumes();
+        // Загружаем и отображаем отклики
+        loadUserApplications();
+    }
 }
 
 // Загрузка и отображение резюме пользователя

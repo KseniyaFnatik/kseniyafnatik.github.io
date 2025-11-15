@@ -3,8 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>О компании - JobFinder</title>
+    <title>О компании - Lime</title>
+    <link rel="icon" href="data:,">
+    <script>
+        // Регистрация Service Worker для перехвата всех запросов
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                .then(() => console.log('Service Worker зарегистрирован'))
+                .catch(error => console.log('Ошибка регистрации SW:', error));
+        }
+        
+        (function() {
+            const existingPages = ['index.html', 'about.html', 'contacts.html', 'job-search.html', 'login.html', 'profile.html', 'resume-create.html', '404.html', 'admin.html', 'yandex_9692edf2d716bce0.html'];
+            let currentPage = window.location.pathname.split('/').pop();
+            if (!currentPage || currentPage === '' || currentPage === '/') currentPage = 'index.html';
+            if (currentPage !== '404.html' && currentPage.endsWith('.html') && !existingPages.includes(currentPage)) {
+                window.location.replace('404.html');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/404-check.js"></script>
 </head>
 <body>
     <!-- Навигационное меню -->
@@ -12,7 +31,7 @@
         <div class="nav-container">
             <div class="nav-logo">
                 <a href="index.html">
-                    <img src="images/logo.svg" alt="JobFinder" class="logo-img">
+                    <img src="images/logo.svg" alt="Lime" class="logo-img">
                 </a>
             </div>
             <ul class="nav-menu">
@@ -36,14 +55,14 @@
     <section class="about-section">
         <div class="container">
             <div class="about-header">
-                <h1>О компании JobFinder</h1>
+                <h1>О компании Lime</h1>
                 <p class="about-subtitle">Мы помогаем людям найти работу мечты</p>
             </div>
 
             <div class="about-content">
                 <div class="about-text">
                     <h2>Наша миссия</h2>
-                    <p>JobFinder - это современная платформа для поиска работы и создания профессиональных резюме. Мы стремимся упростить процесс трудоустройства и помочь каждому найти подходящую работу.</p>
+                    <p>Lime - это современная платформа для поиска работы и создания профессиональных резюме. Мы стремимся упростить процесс трудоустройства и помочь каждому найти подходящую работу.</p>
                     
                     <h2>Что мы предлагаем</h2>
                     <ul class="about-features">
@@ -78,7 +97,7 @@
                 <div class="team-grid">
                     <div class="team-member">
                         <div class="member-photo">
-                            <img src="images/team-member1.jpg" alt="Анна Смирнова">
+                            <img src="images/member1.jpg" alt="Анна Смирнова">
                         </div>
                         <h3>Анна Смирнова</h3>
                         <p class="member-position">Генеральный директор</p>
@@ -86,7 +105,7 @@
                     </div>
                     <div class="team-member">
                         <div class="member-photo">
-                            <img src="images/team-member2.jpg" alt="Михаил Петров">
+                            <img src="images/member2.jpg" alt="Михаил Петров">
                         </div>
                         <h3>Михаил Петров</h3>
                         <p class="member-position">Технический директор</p>
@@ -94,7 +113,7 @@
                     </div>
                     <div class="team-member">
                         <div class="member-photo">
-                            <img src="images/team-member3.jpg" alt="Елена Козлова">
+                            <img src="images/member3.jpg" alt="Елена Козлова">
                         </div>
                         <h3>Елена Козлова</h3>
                         <p class="member-position">Руководитель отдела разработки</p>
@@ -102,7 +121,7 @@
                     </div>
                     <div class="team-member">
                         <div class="member-photo">
-                            <img src="images/team-member4.jpg" alt="Дмитрий Волков">
+                            <img src="images/member4.jpg" alt="Дмитрий Волков">
                         </div>
                         <h3>Дмитрий Волков</h3>
                         <p class="member-position">Старший разработчик</p>
@@ -118,7 +137,7 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3>JobFinder</h3>
+                    <h3>Lime</h3>
                     <p>Ваш надежный помощник в поиске работы</p>
                 </div>
                 <div class="footer-section">
@@ -132,7 +151,7 @@
                 <div class="footer-section">
                     <h4>Контакты</h4>
                     <p>Телефон: +7 (999) 123-45-67</p>
-                    <p>Email: info@jobfinder.ru</p>
+                    <p>Email: info@lime.ru</p>
                 </div>
             </div>
             <div class="footer-bottom">

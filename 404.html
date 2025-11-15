@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Страница не найдена - Lime</title>
+    <link rel="icon" href="data:,">
+    <script>
+        // Регистрация Service Worker для перехвата всех запросов
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                .then(() => console.log('Service Worker зарегистрирован'))
+                .catch(error => console.log('Ошибка регистрации SW:', error));
+        }
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/404-check.js"></script>
+</head>
+<body>
+    <!-- Навигационное меню -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="index.html">
+                    <img src="images/logo.svg" alt="Lime" class="logo-img">
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="about.html" class="nav-link">О компании</a>
+                </li>
+                <li class="nav-item">
+                    <a href="contacts.html" class="nav-link">Контакты</a>
+                </li>
+                <li class="nav-item">
+                    <a href="job-search.html" class="nav-link">Поиск работы</a>
+                </li>
+                <li class="nav-item">
+                    <a href="login.html" class="nav-link login-btn">Войти</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Страница 404 -->
+    <section class="error-404-section" style="min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 60px 20px;">
+        <div class="container" style="text-align: center; max-width: 600px;">
+            <div class="error-404-content">
+                <h1 style="font-size: 120px; font-weight: bold; color: #2563eb; margin: 0; line-height: 1;">404</h1>
+                <h2 style="font-size: 32px; margin: 20px 0; color: #1f2937;">Страница не найдена</h2>
+                <p style="font-size: 18px; color: #6b7280; margin-bottom: 40px; line-height: 1.6;">
+                    К сожалению, запрашиваемая страница не существует или была перемещена. 
+                    Возможно, вы ввели неправильный адрес или страница была удалена.
+                </p>
+                
+                <div class="error-actions" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <a href="index.html" class="btn btn-primary" style="padding: 12px 30px; text-decoration: none; display: inline-block;">
+                        Вернуться на главную
+                    </a>
+                    <a href="job-search.html" class="btn btn-secondary" style="padding: 12px 30px; text-decoration: none; display: inline-block;">
+                        Поиск работы
+                    </a>
+                </div>
+
+                <div class="helpful-links" style="margin-top: 50px; padding-top: 30px; border-top: 1px solid #e5e7eb;">
+                    <h3 style="font-size: 20px; margin-bottom: 20px; color: #1f2937;">Полезные ссылки:</h3>
+                    <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                        <li><a href="index.html" style="color: #2563eb; text-decoration: none;">Главная страница</a></li>
+                        <li><a href="job-search.html" style="color: #2563eb; text-decoration: none;">Поиск работы</a></li>
+                        <li><a href="about.html" style="color: #2563eb; text-decoration: none;">О компании</a></li>
+                        <li><a href="contacts.html" style="color: #2563eb; text-decoration: none;">Контакты</a></li>
+                        <li><a href="login.html" style="color: #2563eb; text-decoration: none;">Вход / Регистрация</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Lime</h3>
+                    <p>Ваш надежный помощник в поиске работы</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Навигация</h4>
+                    <ul>
+                        <li><a href="about.html">О компании</a></li>
+                        <li><a href="contacts.html">Контакты</a></li>
+                        <li><a href="job-search.html">Поиск работы</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Контакты</h4>
+                    <p>Телефон: +7 (999) 123-45-67</p>
+                    <p>Email: info@lime.ru</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; Lime. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
+

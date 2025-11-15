@@ -3,8 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Контакты - JobFinder</title>
+    <title>Контакты - Lime</title>
+    <link rel="icon" href="data:,">
+    <script>
+        // Регистрация Service Worker для перехвата всех запросов
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                .then(() => console.log('Service Worker зарегистрирован'))
+                .catch(error => console.log('Ошибка регистрации SW:', error));
+        }
+        
+        (function() {
+            const existingPages = ['index.html', 'about.html', 'contacts.html', 'job-search.html', 'login.html', 'profile.html', 'resume-create.html', '404.html', 'admin.html', 'yandex_9692edf2d716bce0.html'];
+            let currentPage = window.location.pathname.split('/').pop();
+            if (!currentPage || currentPage === '' || currentPage === '/') currentPage = 'index.html';
+            if (currentPage !== '404.html' && currentPage.endsWith('.html') && !existingPages.includes(currentPage)) {
+                window.location.replace('404.html');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/404-check.js"></script>
     <script src="https://api-maps.yandex.ru/2.1/?apikey=YOUR_API_KEY&lang=ru_RU" type="text/javascript"></script>
 </head>
 <body>
@@ -13,7 +32,7 @@
         <div class="nav-container">
             <div class="nav-logo">
                 <a href="index.html">
-                    <img src="images/logo.svg" alt="JobFinder" class="logo-img">
+                    <img src="images/logo.svg" alt="Lime" class="logo-img">
                 </a>
             </div>
             <ul class="nav-menu">
@@ -46,8 +65,8 @@
                     <h2>Контактная информация</h2>
                     
                     <div class="contact-item">
-                        <div class="contact-icon">
-                            <img src="images/phone-icon.svg" alt="Телефон">
+                        <div class="contact-icon1">
+                            <img src="images/man.jpg" class="contact-icon1" alt="Телефон">
                         </div>
                         <div class="contact-details">
                             <h3>Телефон</h3>
@@ -73,8 +92,8 @@
                         </div>
                         <div class="contact-details">
                             <h3>Электронная почта</h3>
-                            <p>info@jobfinder.ru</p>
-                            <p>support@jobfinder.ru</p>
+                            <p>info@lime.ru</p>
+                            <p>support@lime.ru</p>
                         </div>
                     </div>
 
@@ -139,7 +158,7 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3>JobFinder</h3>
+                    <h3>Lime</h3>
                     <p>Ваш надежный помощник в поиске работы</p>
                 </div>
                 <div class="footer-section">
@@ -153,7 +172,7 @@
                 <div class="footer-section">
                     <h4>Контакты</h4>
                     <p>Телефон: +7 (999) 123-45-67</p>
-                    <p>Email: info@jobfinder.ru</p>
+                    <p>Email: info@lime.ru</p>
                 </div>
             </div>
             <div class="footer-bottom">
@@ -175,10 +194,10 @@
 
             // Добавляем метку
             var myPlacemark = new ymaps.Placemark([55.7558, 37.6176], {
-                balloonContentHeader: 'JobFinder',
+                balloonContentHeader: 'Lime',
                 balloonContentBody: 'г. Москва, ул. Тверская, д. 15, офис 201<br>БЦ "Тверской", 2 этаж',
                 balloonContentFooter: 'Ваш надежный помощник в поиске работы',
-                hintContent: 'Офис JobFinder'
+                hintContent: 'Офис Lime'
             }, {
                 iconLayout: 'default#image',
                 iconImageHref: 'https://yastatic.net/s3/home/logos/ru/ru.svg',
