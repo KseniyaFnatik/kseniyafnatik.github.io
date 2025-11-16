@@ -105,6 +105,11 @@
                     <a href="login.html" class="nav-link logout-btn">Выйти</a>
                 </li>
             </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
         </div>
     </nav>
 
@@ -113,8 +118,8 @@
         <div class="container">
             <div class="profile-header">
                 <h1>Мой профиль</h1>
-                <div id="profile-actions">
-                    <!-- Для соискателей -->
+                <div id="profile-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <!-- Для соискателей и работодателей -->
                     <a href="resume-create.html" class="btn btn-primary" id="create-resume-btn" style="display: none;">Создать резюме</a>
                     <!-- Для работодателей -->
                     <button class="btn btn-primary" id="create-job-btn" style="display: none;">Создать вакансию</button>
@@ -136,6 +141,9 @@
                         <!-- Режим просмотра -->
                         <div class="profile-info-view" id="profileView">
                             <h3 id="viewFio">Иванов Иван Иванович</h3>
+                            <p id="viewRole" style="margin-bottom: 15px;">
+                                <span id="roleBadge" style="display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 14px; font-weight: 500; background: #e0e7ff; color: #4338ca;"></span>
+                            </p>
                             <p><strong>Дата рождения:</strong> <span id="viewBirthDate">15.03.1990</span></p>
                             <p><strong>Телефон:</strong> <span id="viewPhone">+7 (999) 123-45-67</span></p>
                             <p><strong>Email:</strong> <span id="viewEmail">ivan.ivanov@email.com</span></p>
@@ -210,6 +218,17 @@
                             <!-- Вакансии будут загружаться динамически -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Уведомления (для соискателей) -->
+            <div class="profile-card" id="notifications-section" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Уведомления <span id="unread-count" style="display: none; background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 14px; margin-left: 10px;"></span></h2>
+                    <button class="btn btn-secondary btn-small" id="mark-all-read-btn" style="display: none;">Отметить все как прочитанные</button>
+                </div>
+                <div class="notifications-list" id="notifications-list">
+                    <!-- Уведомления будут загружаться динамически -->
                 </div>
             </div>
 
@@ -314,6 +333,26 @@
             }
         }
 
+        // Функция для получения названия роли
+        function getRoleName(status) {
+            const roles = {
+                'applicant': 'Соискатель',
+                'employer': 'Работодатель',
+                'admin': 'Администратор'
+            };
+            return roles[status] || 'Пользователь';
+        }
+
+        // Функция для получения стиля бейджа роли
+        function getRoleBadgeStyle(status) {
+            const styles = {
+                'applicant': { background: '#dbeafe', color: '#1e40af' }, // Синий для соискателя
+                'employer': { background: '#fef3c7', color: '#92400e' }, // Желтый для работодателя
+                'admin': { background: '#fce7f3', color: '#9f1239' } // Розовый для админа
+            };
+            return styles[status] || { background: '#e0e7ff', color: '#4338ca' };
+        }
+
         function loadUserProfile() {
             // Получаем данные пользователя напрямую из localStorage
             const userData = localStorage.getItem('currentUser');
@@ -333,6 +372,7 @@
             const viewPhone = document.getElementById('viewPhone');
             const viewEmail = document.getElementById('viewEmail');
             const viewBirthDate = document.getElementById('viewBirthDate');
+            const roleBadge = document.getElementById('roleBadge');
             
             console.log('Элементы найдены:', {
                 viewFio: !!viewFio,
@@ -368,6 +408,19 @@
                 console.log('Обновлена дата рождения:', user.birthDate ? formatDate(user.birthDate) : 'Не указано');
             } else {
                 console.error('Элемент viewBirthDate не найден!');
+            }
+
+            // Обновляем роль пользователя
+            if (roleBadge) {
+                const userStatus = user.status || 'applicant';
+                const roleName = getRoleName(userStatus);
+                const roleStyle = getRoleBadgeStyle(userStatus);
+                roleBadge.textContent = roleName;
+                roleBadge.style.background = roleStyle.background;
+                roleBadge.style.color = roleStyle.color;
+                console.log('Обновлена роль:', roleName);
+            } else {
+                console.error('Элемент roleBadge не найден!');
             }
 
             // Загружаем аватар
@@ -665,6 +718,7 @@
                 const viewPhone = document.getElementById('viewPhone');
                 const viewEmail = document.getElementById('viewEmail');
                 const viewBirthDate = document.getElementById('viewBirthDate');
+                const roleBadge = document.getElementById('roleBadge');
                 
                 if (viewFio) {
                     viewFio.textContent = user.fio || 'Не указано';
@@ -689,6 +743,17 @@
                         viewBirthDate.textContent = 'Не указано';
                     }
                     console.log('✅ Дата рождения обновлена');
+                }
+
+                // Обновляем роль пользователя
+                if (roleBadge) {
+                    const userStatus = user.status || 'applicant';
+                    const roleName = getRoleName(userStatus);
+                    const roleStyle = getRoleBadgeStyle(userStatus);
+                    roleBadge.textContent = roleName;
+                    roleBadge.style.background = roleStyle.background;
+                    roleBadge.style.color = roleStyle.color;
+                    console.log('✅ Роль обновлена:', roleName);
                 }
             } catch (error) {
                 console.error('Ошибка при загрузке профиля:', error);

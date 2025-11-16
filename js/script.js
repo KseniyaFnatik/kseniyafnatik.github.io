@@ -521,6 +521,26 @@ function getCurrentUser() {
     return userData ? JSON.parse(userData) : null;
 }
 
+// Функция для получения названия роли
+function getRoleName(status) {
+    const roles = {
+        'applicant': 'Соискатель',
+        'employer': 'Работодатель',
+        'admin': 'Администратор'
+    };
+    return roles[status] || 'Пользователь';
+}
+
+// Функция для получения стиля бейджа роли
+function getRoleBadgeStyle(status) {
+    const styles = {
+        'applicant': { background: '#dbeafe', color: '#1e40af' }, // Синий для соискателя
+        'employer': { background: '#fef3c7', color: '#92400e' }, // Желтый для работодателя
+        'admin': { background: '#fce7f3', color: '#9f1239' } // Розовый для админа
+    };
+    return styles[status] || { background: '#e0e7ff', color: '#4338ca' };
+}
+
 // Функция проверки авторизации
 function isLoggedIn() {
     return sessionStorage.getItem('isLoggedIn') === 'true' && getCurrentUser() !== null;
@@ -656,14 +676,6 @@ function saveResume(form) {
         return;
     }
 
-    // Проверяем, что пользователь не является работодателем
-    const userStatus = currentUser.status || 'applicant';
-    if (userStatus === 'employer') {
-        showNotification('Работодатели не могут создавать резюме!', 'error');
-        window.location.href = 'profile.html';
-        return;
-    }
-
     // Валидация обязательных полей
     const requiredFields = form.querySelectorAll('[required]');
     let isValid = true;
@@ -698,7 +710,8 @@ function saveResume(form) {
         professionalSkills: form.querySelector('#professionalSkills').value.trim(),
         personalSkills: form.querySelector('#personalSkills').value.trim(),
         hasExperience: form.querySelector('input[name="hasExperience"]:checked')?.value === 'yes',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        moderationStatus: 'pending' // Статус модерации по умолчанию
     };
 
     // Загружаем существующие резюме
@@ -788,31 +801,57 @@ function getResumeById(resumeId) {
 
 // ========== РАБОТА С ВАКАНСИЯМИ ==========
 
-// Загрузка вакансий из data/jobs.json
+// Загрузка вакансий из data/jobs.json и localStorage
 async function loadJobs() {
+    let allJobs = [];
+    const jobsMap = new Map(); // Используем Map для избежания дубликатов по ID
+    
+    // Сначала загружаем вакансии из файла
     try {
         const response = await fetch('data/jobs.json');
         if (response.ok) {
-            const jobs = await response.json();
-            if (Array.isArray(jobs)) {
-                return jobs;
+            const fileJobs = await response.json();
+            if (Array.isArray(fileJobs)) {
+                // Добавляем статус модерации "approved" для вакансий из файла, если его нет
+                fileJobs.forEach(job => {
+                    if (!job.moderationStatus) {
+                        job.moderationStatus = 'approved'; // Вакансии из файла считаются одобренными
+                    }
+                    // Добавляем employerId, если его нет (для совместимости)
+                    if (!job.employerId) {
+                        job.employerId = 'system'; // Системные вакансии
+                    }
+                    jobsMap.set(job.id, job);
+                });
+                console.log('✅ Вакансии загружены из файла:', fileJobs.length);
             }
         }
     } catch (error) {
-        console.error('Ошибка загрузки вакансий:', error);
+        console.error('Ошибка загрузки вакансий из файла:', error);
     }
     
-    // Если не удалось загрузить, используем localStorage
+    // Затем загружаем вакансии из localStorage
     const jobsFromStorage = localStorage.getItem('jobs');
     if (jobsFromStorage) {
         try {
-            return JSON.parse(jobsFromStorage);
+            const storageJobs = JSON.parse(jobsFromStorage);
+            if (Array.isArray(storageJobs) && storageJobs.length > 0) {
+                // Объединяем с вакансиями из файла, приоритет у вакансий из localStorage
+                storageJobs.forEach(job => {
+                    jobsMap.set(job.id, job); // Вакансии из localStorage перезаписывают файльные с тем же ID
+                });
+                console.log('✅ Вакансии загружены из localStorage:', storageJobs.length);
+            }
         } catch (e) {
             console.error('Ошибка парсинга вакансий из localStorage:', e);
         }
     }
     
-    return [];
+    // Преобразуем Map обратно в массив
+    allJobs = Array.from(jobsMap.values());
+    console.log('✅ Всего вакансий (объединено):', allJobs.length);
+    
+    return allJobs;
 }
 
 // Получение вакансии по ID
@@ -821,32 +860,47 @@ async function getJobById(jobId) {
     return jobs.find(job => job.id === jobId);
 }
 
-// Сохранение вакансий в localStorage
+// Сохранение вакансий в localStorage (только пользовательские, не системные)
 function saveJobs(jobs) {
     if (!Array.isArray(jobs)) {
         console.error('Ошибка: jobs должен быть массивом');
         return false;
     }
-    localStorage.setItem('jobs', JSON.stringify(jobs));
-    console.log('✅ Вакансии сохранены в localStorage');
+    
+    // Фильтруем только пользовательские вакансии (не системные из файла)
+    const userJobs = jobs.filter(job => job.employerId !== 'system' && job.employerId !== undefined);
+    
+    localStorage.setItem('jobs', JSON.stringify(userJobs));
+    console.log('✅ Пользовательские вакансии сохранены в localStorage:', userJobs.length);
     return true;
 }
 
 // Загрузка вакансий работодателя
 async function loadEmployerJobs() {
     const currentUser = getCurrentUser();
-    if (!currentUser) return;
+    if (!currentUser) {
+        console.log('❌ loadEmployerJobs: Пользователь не авторизован');
+        return;
+    }
     
     const allJobs = await loadJobs();
-    const employerJobs = allJobs.filter(job => job.employerId === currentUser.id);
-    const tbody = document.getElementById('jobs-table-body');
+    console.log('📋 Все вакансии:', allJobs.length);
+    console.log('👤 Текущий пользователь ID:', currentUser.id);
     
-    if (!tbody) return;
+    const employerJobs = allJobs.filter(job => job.employerId === currentUser.id);
+    console.log('💼 Вакансии работодателя:', employerJobs.length);
+    
+    const tbody = document.getElementById('jobs-table-body');
+    if (!tbody) {
+        console.log('❌ loadEmployerJobs: Элемент jobs-table-body не найден');
+        return;
+    }
     
     tbody.innerHTML = '';
     
     if (employerJobs.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">У вас пока нет вакансий</td></tr>';
+        console.log('ℹ️ loadEmployerJobs: У работодателя нет вакансий');
         return;
     }
     
@@ -859,9 +913,28 @@ async function loadEmployerJobs() {
         const jobApplications = applications.filter(app => app.jobId === job.id);
         const applicationsCount = jobApplications.length;
         
+        // Определяем статус модерации
+        const moderationStatus = job.moderationStatus || 'pending';
+        const moderationStatusText = {
+            'pending': 'На модерации',
+            'approved': 'Одобрено',
+            'rejected': 'Отклонено'
+        };
+        const moderationStatusStyle = {
+            'pending': 'background: #fef3c7; color: #92400e;',
+            'approved': 'background: #d1fae5; color: #065f46;',
+            'rejected': 'background: #fee2e2; color: #991b1b;'
+        };
+        
         row.innerHTML = `
             <td>${String(index + 1).padStart(3, '0')}</td>
-            <td>${job.title || 'Без названия'}</td>
+            <td>
+                ${job.title || 'Без названия'}
+                <br>
+                <span style="display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 500; margin-top: 4px; ${moderationStatusStyle[moderationStatus] || moderationStatusStyle['pending']}">
+                    ${moderationStatusText[moderationStatus] || 'На модерации'}
+                </span>
+            </td>
             <td>${job.company || 'Не указана'}</td>
             <td>${date}</td>
             <td>${applicationsCount}</td>
@@ -923,14 +996,20 @@ async function createJob(jobData) {
         tags: jobData.tags ? jobData.tags.split(',').map(t => t.trim()) : [],
         employmentType: jobData.employmentType || 'Полная занятость',
         datePosted: new Date().toISOString(),
-        requirements: jobData.requirements || ''
+        requirements: jobData.requirements || '',
+        moderationStatus: 'pending' // Статус модерации по умолчанию
     };
     
     allJobs.push(newJob);
     
     if (saveJobs(allJobs)) {
         showNotification('Вакансия успешно создана!', 'success');
-        loadEmployerJobs();
+        // Обновляем отображение вакансий в профиле
+        await loadEmployerJobs();
+        // Обновляем отображение на главной странице, если она открыта
+        if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
+            loadLatestJobsToHomePage();
+        }
         return true;
     }
     
@@ -991,6 +1070,22 @@ function viewJobApplications(jobId) {
         const resume = getResumeById(app.resumeId);
         const user = getCurrentUser();
         
+        // Определяем статус отклика
+        const status = app.status || 'sent';
+        const statusText = {
+            'sent': 'Отправлено',
+            'viewed': 'Просмотрено',
+            'invited': 'Приглашение отправлено',
+            'rejected': 'Отклонено'
+        };
+        
+        const statusBadgeStyle = {
+            'sent': 'background: #e5e7eb; color: #374151;',
+            'viewed': 'background: #dbeafe; color: #1e40af;',
+            'invited': 'background: #d1fae5; color: #065f46;',
+            'rejected': 'background: #fee2e2; color: #991b1b;'
+        };
+        
         html += `
             <div style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
                 <h3>Отклик #${index + 1}</h3>
@@ -998,7 +1093,21 @@ function viewJobApplications(jobId) {
                 ${resume ? `<p><strong>Соискатель:</strong> ${resume.fullName || 'Не указано'}</p>` : ''}
                 ${resume ? `<p><strong>Телефон:</strong> ${resume.phone || 'Не указан'}</p>` : ''}
                 ${resume ? `<p><strong>Email:</strong> ${resume.email || 'Не указан'}</p>` : ''}
-                <button class="btn btn-small btn-primary view-resume-from-app" data-resume-id="${app.resumeId}" style="margin-top: 10px;">Просмотреть резюме</button>
+                <p style="margin-top: 10px;">
+                    <strong>Статус:</strong> 
+                    <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; ${statusBadgeStyle[status] || statusBadgeStyle['sent']}">
+                        ${statusText[status] || 'Отправлено'}
+                    </span>
+                </p>
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-small btn-primary view-resume-from-app" data-resume-id="${app.resumeId}">Просмотреть резюме</button>
+                    ${status !== 'viewed' && status !== 'invited' ? `
+                        <button class="btn btn-small btn-secondary mark-viewed-modal-btn" data-application-id="${app.id}">Просмотрено</button>
+                    ` : ''}
+                    ${status !== 'invited' ? `
+                        <button class="btn btn-small btn-success mark-invited-modal-btn" data-application-id="${app.id}">Приглашение</button>
+                    ` : ''}
+                </div>
             </div>
         `;
     });
@@ -1025,6 +1134,29 @@ function viewJobApplications(jobId) {
             const resumeId = e.target.getAttribute('data-resume-id');
             document.body.removeChild(modal);
             viewResume(resumeId);
+        });
+    });
+    
+    // Обработчики для кнопок статуса в модальном окне
+    content.querySelectorAll('.mark-viewed-modal-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const applicationId = e.target.getAttribute('data-application-id');
+            if (updateApplicationStatus(applicationId, 'viewed')) {
+                // Закрываем модальное окно и перезагружаем список
+                document.body.removeChild(modal);
+                loadJobApplications();
+            }
+        });
+    });
+    
+    content.querySelectorAll('.mark-invited-modal-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const applicationId = e.target.getAttribute('data-application-id');
+            if (updateApplicationStatus(applicationId, 'invited')) {
+                // Закрываем модальное окно и перезагружаем список
+                document.body.removeChild(modal);
+                loadJobApplications();
+            }
         });
     });
 }
@@ -1144,6 +1276,10 @@ function showCreateJobModal() {
         if (success) {
             closeModal();
             loadJobApplications();
+            // Обновляем отображение на главной странице, если она открыта
+            if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
+                loadLatestJobsToHomePage();
+            }
         }
     });
 }
@@ -1178,15 +1314,46 @@ async function loadJobApplications() {
         const resume = getResumeById(application.resumeId);
         const date = new Date(application.createdAt).toLocaleDateString('ru-RU');
         
+        // Определяем статус отклика
+        const status = application.status || 'sent';
+        const statusText = {
+            'sent': 'Отправлено',
+            'viewed': 'Просмотрено',
+            'invited': 'Приглашение отправлено',
+            'rejected': 'Отклонено'
+        };
+        
+        const statusBadgeStyle = {
+            'sent': 'background: #e5e7eb; color: #374151;',
+            'viewed': 'background: #dbeafe; color: #1e40af;',
+            'invited': 'background: #d1fae5; color: #065f46;',
+            'rejected': 'background: #fee2e2; color: #991b1b;'
+        };
+        
         item.innerHTML = `
             <div class="application-info">
                 <h4>${job ? job.title : 'Вакансия удалена'}</h4>
                 <p><strong>Соискатель:</strong> ${resume ? resume.fullName : 'Не указано'}</p>
                 <p><strong>Телефон:</strong> ${resume ? resume.phone : 'Не указан'}</p>
+                <p><strong>Email:</strong> ${resume ? resume.email || 'Не указан' : 'Не указан'}</p>
                 <p>Дата отклика: ${date}</p>
+                <p style="margin-top: 10px;">
+                    <strong>Статус:</strong> 
+                    <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; ${statusBadgeStyle[status] || statusBadgeStyle['sent']}">
+                        ${statusText[status] || 'Отправлено'}
+                    </span>
+                </p>
             </div>
-            <div class="application-actions">
+            <div class="application-actions" style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
                 ${resume ? `<button class="btn btn-small btn-primary view-resume-from-list" data-resume-id="${application.resumeId}">Просмотреть резюме</button>` : ''}
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    ${status !== 'viewed' && status !== 'invited' ? `
+                        <button class="btn btn-small btn-secondary mark-viewed-btn" data-application-id="${application.id}">Просмотрено</button>
+                    ` : ''}
+                    ${status !== 'invited' ? `
+                        <button class="btn btn-small btn-success mark-invited-btn" data-application-id="${application.id}">Приглашение</button>
+                    ` : ''}
+                </div>
             </div>
         `;
         
@@ -1198,6 +1365,25 @@ async function loadJobApplications() {
         btn.addEventListener('click', (e) => {
             const resumeId = e.target.getAttribute('data-resume-id');
             viewResume(resumeId);
+        });
+    });
+    
+    // Обработчики для кнопок статуса
+    document.querySelectorAll('.mark-viewed-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const applicationId = e.target.getAttribute('data-application-id');
+            if (updateApplicationStatus(applicationId, 'viewed')) {
+                loadJobApplications(); // Перезагружаем список
+            }
+        });
+    });
+    
+    document.querySelectorAll('.mark-invited-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const applicationId = e.target.getAttribute('data-application-id');
+            if (updateApplicationStatus(applicationId, 'invited')) {
+                loadJobApplications(); // Перезагружаем список
+            }
         });
     });
 }
@@ -1289,6 +1475,155 @@ async function createApplication(jobId, resumeId) {
 function getUserApplications(userId) {
     const applications = loadApplications();
     return applications.filter(app => app.userId === userId);
+}
+
+// ========== РАБОТА С УВЕДОМЛЕНИЯМИ ==========
+
+// Загрузка уведомлений из localStorage
+function loadNotifications() {
+    const notificationsFromStorage = localStorage.getItem('notifications');
+    if (notificationsFromStorage) {
+        try {
+            const notifications = JSON.parse(notificationsFromStorage);
+            if (Array.isArray(notifications)) {
+                return notifications;
+            }
+        } catch (e) {
+            console.error('Ошибка парсинга уведомлений из localStorage:', e);
+        }
+    }
+    return [];
+}
+
+// Сохранение уведомлений в localStorage
+function saveNotifications(notifications) {
+    if (!Array.isArray(notifications)) {
+        console.error('Ошибка: notifications должен быть массивом');
+        return false;
+    }
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+    console.log('✅ Уведомления сохранены в localStorage');
+    return true;
+}
+
+// Создание уведомления
+function createNotification(userId, type, title, message, relatedId = null) {
+    const notifications = loadNotifications();
+    
+    const notification = {
+        id: 'notif_' + Date.now().toString(),
+        userId: userId,
+        type: type, // 'invitation', 'viewed', 'rejected', etc.
+        title: title,
+        message: message,
+        relatedId: relatedId, // ID отклика или другой связанной сущности
+        isRead: false,
+        createdAt: new Date().toISOString()
+    };
+    
+    notifications.push(notification);
+    saveNotifications(notifications);
+    
+    return notification;
+}
+
+// Получение уведомлений пользователя
+function getUserNotifications(userId) {
+    const notifications = loadNotifications();
+    return notifications.filter(notif => notif.userId === userId);
+}
+
+// Получение непрочитанных уведомлений пользователя
+function getUnreadNotifications(userId) {
+    const notifications = getUserNotifications(userId);
+    return notifications.filter(notif => !notif.isRead);
+}
+
+// Отметить уведомление как прочитанное
+function markNotificationAsRead(notificationId) {
+    const notifications = loadNotifications();
+    const notificationIndex = notifications.findIndex(notif => notif.id === notificationId);
+    
+    if (notificationIndex !== -1) {
+        notifications[notificationIndex].isRead = true;
+        notifications[notificationIndex].readAt = new Date().toISOString();
+        saveNotifications(notifications);
+        return true;
+    }
+    
+    return false;
+}
+
+// Отметить все уведомления пользователя как прочитанные
+function markAllNotificationsAsRead(userId) {
+    const notifications = loadNotifications();
+    let updated = false;
+    
+    notifications.forEach(notif => {
+        if (notif.userId === userId && !notif.isRead) {
+            notif.isRead = true;
+            notif.readAt = new Date().toISOString();
+            updated = true;
+        }
+    });
+    
+    if (updated) {
+        saveNotifications(notifications);
+    }
+    
+    return updated;
+}
+
+// Обновление статуса отклика
+function updateApplicationStatus(applicationId, newStatus) {
+    const applications = loadApplications();
+    const applicationIndex = applications.findIndex(app => app.id === applicationId);
+    
+    if (applicationIndex === -1) {
+        showNotification('Отклик не найден!', 'error');
+        return false;
+    }
+    
+    const application = applications[applicationIndex];
+    const oldStatus = application.status;
+    
+    applications[applicationIndex].status = newStatus;
+    applications[applicationIndex].updatedAt = new Date().toISOString();
+    
+    if (saveApplications(applications)) {
+        // Если статус изменен на "invited", создаем уведомление для соискателя
+        if (newStatus === 'invited' && oldStatus !== 'invited') {
+            // Используем async/await для получения информации о вакансии
+            (async () => {
+                const job = await getJobById(application.jobId);
+                if (job) {
+                    createNotification(
+                        application.userId,
+                        'invitation',
+                        'Приглашение на собеседование',
+                        `Вы получили приглашение на вакансию "${job.title}" в компании "${job.company}"`,
+                        application.id
+                    );
+                }
+            })();
+        }
+        
+        const statusMessages = {
+            'viewed': 'Отклик отмечен как просмотренный',
+            'invited': 'Приглашение отправлено соискателю',
+            'rejected': 'Отклик отклонен'
+        };
+        showNotification(statusMessages[newStatus] || 'Статус обновлен', 'success');
+        return true;
+    }
+    
+    return false;
+}
+
+// Получение отклика по ID
+function getApplicationById(applicationId) {
+    const applications = loadApplications();
+    return applications.find(app => app.id === applicationId);
 }
 
 // Уведомления
@@ -1575,6 +1910,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Загрузка вакансий на странице поиска работы
     if (window.location.pathname.includes('job-search.html')) {
         loadJobsToPage();
+        
+        // Инициализация обработчиков поиска и фильтров
+        initJobSearchFilters();
+    }
+    
+    // Загрузка последних вакансий на главной странице
+    if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
+        loadLatestJobsToHomePage();
     }
     
     // Автозаполнение формы резюме данными пользователя
@@ -1642,10 +1985,11 @@ function loadUserProfile() {
     
     if (userStatus === 'employer') {
         // Для работодателей
-        document.getElementById('create-resume-btn').style.display = 'none';
+        document.getElementById('create-resume-btn').style.display = 'inline-block';
         document.getElementById('create-job-btn').style.display = 'inline-block';
-        document.getElementById('resumes-section').style.display = 'none';
+        document.getElementById('resumes-section').style.display = 'block';
         document.getElementById('applications-section').style.display = 'none';
+        document.getElementById('notifications-section').style.display = 'none';
         document.getElementById('jobs-section').style.display = 'block';
         document.getElementById('job-applications-section').style.display = 'block';
         
@@ -1653,12 +1997,15 @@ function loadUserProfile() {
         loadEmployerJobs();
         // Загружаем отклики на вакансии
         loadJobApplications();
+        // Загружаем и отображаем резюме работодателя
+        loadUserResumes();
     } else {
         // Для соискателей
         document.getElementById('create-resume-btn').style.display = 'inline-block';
         document.getElementById('create-job-btn').style.display = 'none';
         document.getElementById('resumes-section').style.display = 'block';
         document.getElementById('applications-section').style.display = 'block';
+        document.getElementById('notifications-section').style.display = 'block';
         document.getElementById('jobs-section').style.display = 'none';
         document.getElementById('job-applications-section').style.display = 'none';
         
@@ -1666,6 +2013,20 @@ function loadUserProfile() {
         loadUserResumes();
         // Загружаем и отображаем отклики
         loadUserApplications();
+        // Загружаем и отображаем уведомления
+        loadUserNotifications();
+        
+        // Обработчик для кнопки "Отметить все как прочитанные"
+        const markAllReadBtn = document.getElementById('mark-all-read-btn');
+        if (markAllReadBtn) {
+            markAllReadBtn.addEventListener('click', () => {
+                const currentUser = getCurrentUser();
+                if (currentUser && markAllNotificationsAsRead(currentUser.id)) {
+                    loadUserNotifications();
+                    showNotification('Все уведомления отмечены как прочитанные', 'success');
+                }
+            });
+        }
     }
 }
 
@@ -1692,9 +2053,28 @@ function loadUserResumes() {
         const row = document.createElement('tr');
         const date = new Date(resume.createdAt).toLocaleDateString('ru-RU');
         
+        // Определяем статус модерации
+        const moderationStatus = resume.moderationStatus || 'pending';
+        const moderationStatusText = {
+            'pending': 'На модерации',
+            'approved': 'Одобрено',
+            'rejected': 'Отклонено'
+        };
+        const moderationStatusStyle = {
+            'pending': 'background: #fef3c7; color: #92400e;',
+            'approved': 'background: #d1fae5; color: #065f46;',
+            'rejected': 'background: #fee2e2; color: #991b1b;'
+        };
+        
         row.innerHTML = `
             <td>${String(index + 1).padStart(3, '0')}</td>
-            <td>${resume.title || resume.fullName || 'Резюме'}</td>
+            <td>
+                ${resume.title || resume.fullName || 'Резюме'}
+                <br>
+                <span style="display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 500; margin-top: 4px; ${moderationStatusStyle[moderationStatus] || moderationStatusStyle['pending']}">
+                    ${moderationStatusText[moderationStatus] || 'На модерации'}
+                </span>
+            </td>
             <td>${date}</td>
             <td>
                 <button class="btn btn-small btn-primary view-resume" data-resume-id="${resume.id}">Просмотреть</button>
@@ -1821,6 +2201,129 @@ function viewResume(resumeId) {
     });
 }
 
+// Загрузка и отображение уведомлений пользователя
+function loadUserNotifications() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+    
+    const notifications = getUserNotifications(currentUser.id);
+    const notificationsList = document.getElementById('notifications-list');
+    const unreadCountBadge = document.getElementById('unread-count');
+    const markAllReadBtn = document.getElementById('mark-all-read-btn');
+    
+    if (!notificationsList) return;
+    
+    // Сортируем уведомления по дате (новые сначала)
+    notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    // Подсчитываем непрочитанные
+    const unreadCount = getUnreadNotifications(currentUser.id).length;
+    
+    // Обновляем счетчик непрочитанных
+    if (unreadCountBadge) {
+        if (unreadCount > 0) {
+            unreadCountBadge.textContent = unreadCount;
+            unreadCountBadge.style.display = 'inline-block';
+        } else {
+            unreadCountBadge.style.display = 'none';
+        }
+    }
+    
+    // Показываем/скрываем кнопку "Отметить все как прочитанные"
+    if (markAllReadBtn) {
+        if (unreadCount > 0) {
+            markAllReadBtn.style.display = 'inline-block';
+        } else {
+            markAllReadBtn.style.display = 'none';
+        }
+    }
+    
+    // Очищаем список
+    notificationsList.innerHTML = '';
+    
+    if (notifications.length === 0) {
+        notificationsList.innerHTML = '<p style="text-align: center; padding: 20px;">У вас пока нет уведомлений</p>';
+        return;
+    }
+    
+    // Добавляем уведомления
+    notifications.forEach(notification => {
+        const item = document.createElement('div');
+        item.className = 'notification-item';
+        item.style.cssText = `
+            padding: 15px;
+            margin-bottom: 10px;
+            background: ${notification.isRead ? '#f9fafb' : '#eff6ff'};
+            border-left: 4px solid ${notification.isRead ? '#d1d5db' : '#2563eb'};
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        `;
+        
+        if (!notification.isRead) {
+            item.style.fontWeight = '500';
+        }
+        
+        const date = new Date(notification.createdAt).toLocaleDateString('ru-RU', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        const typeIcon = {
+            'invitation': '🎉',
+            'viewed': '👁️',
+            'rejected': '❌',
+            'approved': '✅',
+            'pending': '⏳'
+        };
+        
+        item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                        <span style="font-size: 20px;">${typeIcon[notification.type] || '📢'}</span>
+                        <h4 style="margin: 0; font-size: 16px;">${notification.title}</h4>
+                        ${!notification.isRead ? '<span style="background: #2563eb; width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>' : ''}
+                    </div>
+                    <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">${notification.message}</p>
+                    <p style="margin: 5px 0 0 0; color: #9ca3af; font-size: 12px;">${date}</p>
+                </div>
+                ${!notification.isRead ? `
+                    <button class="btn btn-small btn-secondary mark-notification-read-btn" data-notification-id="${notification.id}" style="margin-left: 10px;">
+                        Отметить как прочитанное
+                    </button>
+                ` : ''}
+            </div>
+        `;
+        
+        // Обработчик клика для отметки как прочитанное
+        if (!notification.isRead) {
+            item.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('mark-notification-read-btn')) {
+                    markNotificationAsRead(notification.id);
+                    loadUserNotifications();
+                }
+            });
+        }
+        
+        notificationsList.appendChild(item);
+    });
+    
+    // Обработчики для кнопок "Отметить как прочитанное"
+    document.querySelectorAll('.mark-notification-read-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const notificationId = e.target.getAttribute('data-notification-id');
+            if (markNotificationAsRead(notificationId)) {
+                loadUserNotifications();
+            }
+        });
+    });
+}
+
 // Загрузка и отображение откликов пользователя
 function loadUserApplications() {
     const currentUser = getCurrentUser();
@@ -1874,29 +2377,44 @@ function loadUserApplications() {
     });
 }
 
-// Загрузка и отображение вакансий
-async function loadJobsToPage() {
+// Загрузка и отображение вакансий на главной странице
+async function loadLatestJobsToHomePage() {
     const jobs = await loadJobs();
-    const vacanciesList = document.querySelector('.vacancies-list');
-    const resultsHeader = document.querySelector('.results-header h2');
+    console.log('🏠 loadLatestJobsToHomePage: Загружено вакансий:', jobs.length);
     
-    if (!vacanciesList) return;
-    
-    // Обновляем количество найденных вакансий
-    if (resultsHeader) {
-        resultsHeader.textContent = `Найдено вакансий: ${jobs.length}`;
+    const latestJobsList = document.getElementById('latest-jobs-list');
+    if (!latestJobsList) {
+        console.log('❌ loadLatestJobsToHomePage: Элемент latest-jobs-list не найден');
+        return;
     }
     
-    // Очищаем список
-    vacanciesList.innerHTML = '';
+    // Фильтруем только одобренные вакансии для публичного просмотра
+    // Вакансии из файла (с employerId = 'system') всегда считаются одобренными
+    const approvedJobs = jobs.filter(job => {
+        // Системные вакансии из файла всегда одобрены
+        if (job.employerId === 'system') {
+            return true;
+        }
+        // Для пользовательских вакансий проверяем статус модерации
+        const moderationStatus = job.moderationStatus || 'pending';
+        return moderationStatus === 'approved';
+    });
     
-    if (jobs.length === 0) {
-        vacanciesList.innerHTML = '<p style="text-align: center; padding: 20px;">Вакансии не найдены</p>';
+    // Сортируем вакансии по дате (новые сначала) и берем последние 6
+    const sortedJobs = approvedJobs.sort((a, b) => new Date(b.datePosted) - new Date(a.datePosted)).slice(0, 6);
+    console.log('📊 loadLatestJobsToHomePage: Отображаем вакансий:', sortedJobs.length);
+    
+    // Очищаем список
+    latestJobsList.innerHTML = '';
+    
+    if (sortedJobs.length === 0) {
+        latestJobsList.innerHTML = '<p style="text-align: center; padding: 20px; grid-column: 1 / -1;">Вакансии пока не добавлены</p>';
+        console.log('ℹ️ loadLatestJobsToHomePage: Нет вакансий для отображения');
         return;
     }
     
     // Добавляем вакансии
-    jobs.forEach(job => {
+    sortedJobs.forEach(job => {
         const card = document.createElement('div');
         card.className = 'vacancy-card';
         
@@ -1904,7 +2422,207 @@ async function loadJobsToPage() {
         const daysAgo = Math.floor((Date.now() - new Date(job.datePosted).getTime()) / (1000 * 60 * 60 * 24));
         const dateText = daysAgo === 0 ? 'Сегодня' : daysAgo === 1 ? 'Вчера' : `${daysAgo} дня назад`;
         
-        const tagsHtml = job.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+        const tagsHtml = (job.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('');
+        
+        card.innerHTML = `
+            <div class="vacancy-header">
+                <h3>${job.title}</h3>
+                <div class="vacancy-salary">${job.salary || 'Не указана'}</div>
+            </div>
+            <div class="vacancy-company">
+                <strong>${job.company || 'Не указана'}</strong>
+                <span class="company-location">${job.location || 'Не указано'}</span>
+            </div>
+            <div class="vacancy-description">
+                <p>${job.description || 'Описание отсутствует'}</p>
+            </div>
+            ${tagsHtml ? `<div class="vacancy-tags">${tagsHtml}</div>` : ''}
+            <div class="vacancy-footer">
+                <span class="vacancy-date">${dateText}</span>
+                <a href="job-search.html" class="btn btn-primary">Подробнее</a>
+            </div>
+        `;
+        
+        latestJobsList.appendChild(card);
+    });
+}
+
+// Фильтрация вакансий по критериям
+function filterJobs(jobs, filters) {
+    let filtered = [...jobs];
+    
+    // Фильтр по текстовому поиску (название, описание, компания)
+    if (filters.searchText && filters.searchText.trim()) {
+        const searchLower = filters.searchText.toLowerCase().trim();
+        filtered = filtered.filter(job => {
+            const title = (job.title || '').toLowerCase();
+            const description = (job.description || '').toLowerCase();
+            const company = (job.company || '').toLowerCase();
+            const tags = (job.tags || []).join(' ').toLowerCase();
+            return title.includes(searchLower) || 
+                   description.includes(searchLower) || 
+                   company.includes(searchLower) ||
+                   tags.includes(searchLower);
+        });
+    }
+    
+    // Фильтр по городу/локации
+    if (filters.location && filters.location.trim()) {
+        const locationLower = filters.location.toLowerCase().trim();
+        filtered = filtered.filter(job => {
+            const jobLocation = (job.location || '').toLowerCase();
+            return jobLocation.includes(locationLower);
+        });
+    }
+    
+    // Фильтр по профессии
+    if (filters.profession && filters.profession !== '') {
+        const professionMap = {
+            'frontend': ['frontend', 'react', 'javascript', 'typescript', 'vue', 'angular'],
+            'backend': ['backend', 'node', 'python', 'java', 'php', 'postgresql', 'mysql'],
+            'fullstack': ['fullstack', 'full-stack', 'full stack'],
+            'designer': ['дизайн', 'design', 'ui', 'ux'],
+            'manager': ['менеджер', 'manager', 'управление', 'руководство']
+        };
+        
+        const keywords = professionMap[filters.profession] || [];
+        if (keywords.length > 0) {
+            filtered = filtered.filter(job => {
+                const title = (job.title || '').toLowerCase();
+                const description = (job.description || '').toLowerCase();
+                const tags = (job.tags || []).join(' ').toLowerCase();
+                const searchText = (title + ' ' + description + ' ' + tags).toLowerCase();
+                return keywords.some(keyword => searchText.includes(keyword));
+            });
+        }
+    }
+    
+    // Фильтр по зарплате
+    if (filters.salaryMin !== null && filters.salaryMin !== undefined && filters.salaryMin !== '') {
+        filtered = filtered.filter(job => {
+            const salaryMin = job.salaryMin || 0;
+            return salaryMin >= parseInt(filters.salaryMin);
+        });
+    }
+    
+    if (filters.salaryMax !== null && filters.salaryMax !== undefined && filters.salaryMax !== '') {
+        filtered = filtered.filter(job => {
+            const salaryMin = job.salaryMin || 0;
+            return salaryMin <= parseInt(filters.salaryMax);
+        });
+    }
+    
+    // Фильтр по региону
+    if (filters.region && filters.region !== '') {
+        const regionMap = {
+            'moscow': ['москва', 'moscow'],
+            'spb': ['санкт-петербург', 'спб', 'питер', 'st. petersburg', 'saint petersburg'],
+            'ekaterinburg': ['екатеринбург', 'ekaterinburg'],
+            'remote': ['удаленно', 'удаленная', 'remote', 'remotely', 'удалённо']
+        };
+        
+        const keywords = regionMap[filters.region] || [];
+        if (keywords.length > 0) {
+            filtered = filtered.filter(job => {
+                const location = (job.location || '').toLowerCase();
+                return keywords.some(keyword => location.includes(keyword));
+            });
+        }
+    }
+    
+    // Фильтр по типу занятости
+    if (filters.employmentTypes && filters.employmentTypes.length > 0) {
+        const employmentTypeMap = {
+            'full': ['полная занятость', 'полный день', 'full-time'],
+            'part': ['частичная занятость', 'частичный день', 'part-time'],
+            'remote': ['удаленная работа', 'удалённая работа', 'remote', 'удаленно']
+        };
+        
+        filtered = filtered.filter(job => {
+            const employmentType = (job.employmentType || '').toLowerCase();
+            return filters.employmentTypes.some(type => {
+                const keywords = employmentTypeMap[type] || [];
+                return keywords.some(keyword => employmentType.includes(keyword));
+            });
+        });
+    }
+    
+    return filtered;
+}
+
+// Сортировка вакансий
+function sortJobs(jobs, sortBy) {
+    const sorted = [...jobs];
+    
+    switch(sortBy) {
+        case 'date':
+            sorted.sort((a, b) => new Date(b.datePosted) - new Date(a.datePosted));
+            break;
+        case 'salary':
+            sorted.sort((a, b) => (b.salaryMin || 0) - (a.salaryMin || 0));
+            break;
+        case 'relevance':
+        default:
+            // Сортировка по релевантности (новые сначала)
+            sorted.sort((a, b) => new Date(b.datePosted) - new Date(a.datePosted));
+            break;
+    }
+    
+    return sorted;
+}
+
+// Загрузка и отображение вакансий с фильтрацией
+async function loadJobsToPage(filters = {}, sortBy = 'relevance') {
+    const jobs = await loadJobs();
+    
+    // Фильтруем только одобренные вакансии для публичного просмотра
+    // Вакансии из файла (с employerId = 'system') всегда считаются одобренными
+    let approvedJobs = jobs.filter(job => {
+        // Системные вакансии из файла всегда одобрены
+        if (job.employerId === 'system') {
+            return true;
+        }
+        // Для пользовательских вакансий проверяем статус модерации
+        const moderationStatus = job.moderationStatus || 'pending';
+        return moderationStatus === 'approved';
+    });
+    
+    // Применяем фильтры, если они есть
+    if (Object.keys(filters).length > 0) {
+        approvedJobs = filterJobs(approvedJobs, filters);
+    }
+    
+    // Применяем сортировку
+    approvedJobs = sortJobs(approvedJobs, sortBy);
+    
+    const vacanciesList = document.querySelector('.vacancies-list');
+    const resultsHeader = document.querySelector('.results-header h2');
+    
+    if (!vacanciesList) return;
+    
+    // Обновляем количество найденных вакансий
+    if (resultsHeader) {
+        resultsHeader.textContent = `Найдено вакансий: ${approvedJobs.length}`;
+    }
+    
+    // Очищаем список
+    vacanciesList.innerHTML = '';
+    
+    if (approvedJobs.length === 0) {
+        vacanciesList.innerHTML = '<p style="text-align: center; padding: 20px;">Вакансии не найдены</p>';
+        return;
+    }
+    
+    // Добавляем вакансии
+    approvedJobs.forEach(job => {
+        const card = document.createElement('div');
+        card.className = 'vacancy-card';
+        
+        const datePosted = new Date(job.datePosted).toLocaleDateString('ru-RU');
+        const daysAgo = Math.floor((Date.now() - new Date(job.datePosted).getTime()) / (1000 * 60 * 60 * 24));
+        const dateText = daysAgo === 0 ? 'Сегодня' : daysAgo === 1 ? 'Вчера' : `${daysAgo} дня назад`;
+        
+        const tagsHtml = (job.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('');
         
         card.innerHTML = `
             <div class="vacancy-header">
@@ -1918,9 +2636,7 @@ async function loadJobsToPage() {
             <div class="vacancy-description">
                 <p>${job.description}</p>
             </div>
-            <div class="vacancy-tags">
-                ${tagsHtml}
-            </div>
+            ${tagsHtml ? `<div class="vacancy-tags">${tagsHtml}</div>` : ''}
             <div class="vacancy-footer">
                 <span class="vacancy-date">${dateText}</span>
                 <button class="btn btn-primary apply-job" data-job-id="${job.id}">Откликнуться</button>
@@ -1937,6 +2653,126 @@ async function loadJobsToPage() {
             await handleJobApplication(jobId);
         });
     });
+}
+
+// Инициализация обработчиков поиска и фильтров
+function initJobSearchFilters() {
+    // Получаем элементы формы
+    const searchInputs = document.querySelectorAll('.search-input');
+    const searchBtn = document.querySelector('.search-btn');
+    const applyFiltersBtn = document.querySelector('.filter-actions .btn-primary');
+    const resetFiltersBtn = document.querySelector('.filter-actions .btn-secondary');
+    const sortSelect = document.querySelector('.sort-select');
+    
+    // Текущие фильтры (сохраняем в глобальной переменной или в замыкании)
+    let currentFilters = {};
+    let currentSort = 'relevance';
+    
+    // Функция для получения текущих значений фильтров
+    function getFilters() {
+        const filters = {};
+        
+        // Текстовый поиск
+        if (searchInputs.length > 0 && searchInputs[0].value.trim()) {
+            filters.searchText = searchInputs[0].value.trim();
+        }
+        
+        // Поиск по городу
+        if (searchInputs.length > 1 && searchInputs[1].value.trim()) {
+            filters.location = searchInputs[1].value.trim();
+        }
+        
+        // Профессия (первый select в фильтрах)
+        const professionSelect = document.querySelectorAll('.filter-group select')[0];
+        if (professionSelect && professionSelect.value) {
+            filters.profession = professionSelect.value;
+        }
+        
+        // Зарплата
+        const salaryInputs = document.querySelectorAll('.salary-input');
+        if (salaryInputs.length > 0 && salaryInputs[0].value) {
+            filters.salaryMin = salaryInputs[0].value;
+        }
+        if (salaryInputs.length > 1 && salaryInputs[1].value) {
+            filters.salaryMax = salaryInputs[1].value;
+        }
+        
+        // Регион (второй select в фильтрах)
+        const regionSelects = document.querySelectorAll('.filter-select');
+        if (regionSelects.length > 1 && regionSelects[1].value) {
+            filters.region = regionSelects[1].value;
+        }
+        
+        // Тип занятости
+        const employmentCheckboxes = document.querySelectorAll('.employment-types input[type="checkbox"]:checked');
+        if (employmentCheckboxes.length > 0) {
+            filters.employmentTypes = Array.from(employmentCheckboxes).map(cb => cb.value);
+        }
+        
+        return filters;
+    }
+    
+    // Функция для применения фильтров
+    async function applyFilters() {
+        currentFilters = getFilters();
+        await loadJobsToPage(currentFilters, currentSort);
+    }
+    
+    // Функция для сброса фильтров
+    async function resetFilters() {
+        // Очищаем все поля
+        if (searchInputs.length > 0) searchInputs[0].value = '';
+        if (searchInputs.length > 1) searchInputs[1].value = '';
+        
+        const professionSelect = document.querySelectorAll('.filter-group select')[0];
+        if (professionSelect) professionSelect.value = '';
+        
+        const salaryInputs = document.querySelectorAll('.salary-input');
+        salaryInputs.forEach(input => input.value = '');
+        
+        const regionSelects = document.querySelectorAll('.filter-select');
+        if (regionSelects.length > 1) {
+            regionSelects[1].value = '';
+        }
+        
+        const employmentCheckboxes = document.querySelectorAll('.employment-types input[type="checkbox"]');
+        employmentCheckboxes.forEach(cb => cb.checked = false);
+        
+        currentFilters = {};
+        await loadJobsToPage({}, currentSort);
+    }
+    
+    // Обработчик кнопки поиска
+    if (searchBtn) {
+        searchBtn.addEventListener('click', applyFilters);
+    }
+    
+    // Обработчик Enter в полях поиска
+    searchInputs.forEach(input => {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+    });
+    
+    // Обработчик кнопки "Применить фильтры"
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', applyFilters);
+    }
+    
+    // Обработчик кнопки "Сбросить"
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', resetFilters);
+    }
+    
+    // Обработчик сортировки
+    if (sortSelect) {
+        sortSelect.addEventListener('change', async (e) => {
+            currentSort = e.target.value;
+            await loadJobsToPage(currentFilters, currentSort);
+        });
+    }
 }
 
 // Обработка отклика на вакансию
