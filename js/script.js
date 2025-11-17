@@ -410,7 +410,7 @@ async function loginUser(username, password) {
         
         // Перенаправляем на страницу профиля
         setTimeout(() => {
-            window.location.href = 'profile.html';
+            window.location.href = 'index.html';
         }, 1000);
         
         return true;
