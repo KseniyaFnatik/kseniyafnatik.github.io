@@ -250,6 +250,18 @@
         </div>
     </section>
 
+
+    <!-- Обратная связь (для всех пользователей) -->
+    <div class="profile-card" id="feedbacks-section" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Мои обращения в поддержку</h2>
+            <button class="btn btn-primary" onclick="showFeedbackModal()">Новое обращение</button>
+        </div>
+        <div class="feedbacks-list" id="feedbacks-list">
+            <!-- Обращения будут загружаться динамически -->
+        </div>
+    </div>
+
     <!-- Футер -->
     <footer class="footer">
         <div class="container">
@@ -695,6 +707,15 @@
                     e.target.value = value;
                 });
             }
+
+            setTimeout(() => {
+        const feedbacksSection = document.getElementById('feedbacks-section');
+        if (feedbacksSection) {
+            feedbacksSection.style.display = 'block';
+            loadUserFeedbacks();
+        }
+    }, 500);
+    
         });
     </script>
 
@@ -778,5 +799,55 @@
             setTimeout(forceLoadUserProfile, 100);
         }
     </script>
+
+
+<!-- Модальное окно обратной связи -->
+<!-- Модальное окно обратной связи -->
+<div id="feedbackModal" class="resume-modal" style="display: none;">
+    <div style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 8px; position: relative;">
+        <button class="close-modal" onclick="closeFeedbackModal()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+        
+        <h2>Обращение в поддержку</h2>
+        
+        <form id="feedbackForm" style="margin-top: 20px;">
+            <div class="form-group">
+                <label for="feedback-name">Ваше имя *</label>
+                <input type="text" id="feedback-name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="feedback-email">Email *</label>
+                <input type="email" id="feedback-email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="feedback-phone">Телефон</label>
+                <input type="tel" id="feedback-phone" name="phone" placeholder="+7 (999) 123-45-67">
+            </div>
+            
+            <div class="form-group">
+                <label for="feedback-subject">Тема обращения *</label>
+                <select id="feedback-subject" name="subject" required>
+                    <option value="">Выберите тему</option>
+                    <option value="technical">Техническая проблема</option>
+                    <option value="question">Вопрос по услугам</option>
+                    <option value="suggestion">Предложение по улучшению</option>
+                    <option value="complaint">Жалоба</option>
+                    <option value="other">Другое</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="feedback-message">Сообщение *</label>
+                <textarea id="feedback-message" name="message" rows="6" placeholder="Опишите вашу проблему или вопрос..." required></textarea>
+            </div>
+            
+            <div class="form-actions" style="margin-top: 20px;">
+                <button type="submit" class="btn btn-primary">Отправить обращение</button>
+                <button type="button" class="btn btn-secondary" onclick="closeFeedbackModal()">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>

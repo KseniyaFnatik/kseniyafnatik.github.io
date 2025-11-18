@@ -152,24 +152,28 @@
             </div>
 
             <!-- Статистика -->
-            <div class="admin-stats">
-                <div class="stat-card">
-                    <h3 id="users-count">0</h3>
-                    <p>Пользователей</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="resumes-count">0</h3>
-                    <p>Резюме</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="applications-count">0</h3>
-                    <p>Откликов</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="jobs-count">0</h3>
-                    <p>Вакансий</p>
-                </div>
+        <div class="admin-stats">
+            <div class="stat-card">
+                <h3 id="users-count">0</h3>
+                <p>Пользователей</p>
             </div>
+            <div class="stat-card">
+                <h3 id="resumes-count">0</h3>
+                <p>Резюме</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="applications-count">0</h3>
+                <p>Откликов</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="jobs-count">0</h3>
+                <p>Вакансий</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="feedbacks-count">0</h3>
+                <p>Обращений</p>
+            </div>
+        </div>
 
             <!-- Пользователи -->
             <div class="admin-section">
@@ -290,6 +294,34 @@
             </div>
         </div>
     </section>
+
+    <!-- Обратная связь -->
+<div class="admin-section">
+    <h2>Обратная связь 
+        <span id="new-feedbacks-count" style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 10px; font-size: 14px; margin-left: 10px;">0</span>
+    </h2>
+    <div class="resume-table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Имя</th>
+                    <th>Email</th>
+                    <th>Телефон</th>
+                    <th>Тема</th>
+                    <th>Статус</th>
+                    <th>Дата создания</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody id="feedbacks-table-body">
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 20px;">Загрузка...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
     <!-- Футер -->
     <footer class="footer">

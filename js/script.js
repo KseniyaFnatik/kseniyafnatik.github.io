@@ -499,7 +499,214 @@ function loadUserProfile() {
             emailElement.textContent = user.email || 'Не указано';
         }
     }
+    document.getElementById('feedbacks-section').style.display = 'block';
+    loadUserFeedbacks();
 }
+
+// Загрузка обращений пользователя
+function loadUserFeedbacks() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+
+    const feedbacks = getAllFeedbacks();
+    
+    // Улучшенная фильтрация обращений
+    const userFeedbacks = feedbacks.filter(fb => {
+        // Проверяем по email ИЛИ по userId
+        const emailMatch = fb.email === currentUser.email;
+        const userIdMatch = currentUser.id && fb.userId === currentUser.id;
+        const nameMatch = fb.name === currentUser.fio; // Дополнительная проверка по имени
+        
+        return emailMatch || userIdMatch || nameMatch;
+    });
+
+    const feedbacksList = document.getElementById('feedbacks-list');
+    if (!feedbacksList) return;
+
+    feedbacksList.innerHTML = '';
+
+    if (userFeedbacks.length === 0) {
+        feedbacksList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                <p>У вас пока нет обращений в поддержку</p>
+                <p style="margin-top: 10px; font-size: 14px;">Нажмите "Новое обращение" чтобы связаться с нами</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Сортируем по дате (новые сначала)
+    userFeedbacks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    userFeedbacks.forEach(feedback => {
+        const item = document.createElement('div');
+        item.className = 'feedback-item';
+        item.style.cssText = `
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        `;
+
+        const createdDate = new Date(feedback.createdAt).toLocaleDateString('ru-RU', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const statusText = {
+            'new': 'Новое',
+            'in_progress': 'В работе',
+            'resolved': 'Решено'
+        };
+
+        const statusStyle = {
+            'new': 'background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;',
+            'in_progress': 'background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;',
+            'resolved': 'background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;'
+        };
+
+        const subjectText = {
+            'technical': 'Техническая проблема',
+            'question': 'Вопрос по услугам',
+            'suggestion': 'Предложение по улучшению',
+            'complaint': 'Жалоба',
+            'other': 'Другое'
+        };
+
+        let html = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 5px 0; color: #1f2937; font-size: 18px;">${subjectText[feedback.subject] || feedback.subject}</h3>
+                    <p style="margin: 0; color: #6b7280; font-size: 14px;">${createdDate}</p>
+                </div>
+                <span style="${statusStyle[feedback.status] || statusStyle['new']}">
+                    ${statusText[feedback.status] || 'Новое'}
+                </span>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <p style="margin: 0 0 8px 0; color: #374151; font-weight: 500;">Ваше сообщение:</p>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #e5e7eb;">
+                    <p style="margin: 0; white-space: pre-wrap; color: #4b5563;">${feedback.message}</p>
+                </div>
+            </div>
+        `;
+
+        // ВАЖНО: Проверяем наличие ответа администратора
+        if (feedback.adminReply && feedback.adminReply.trim() !== '') {
+            const repliedDate = feedback.repliedAt ? new Date(feedback.repliedAt).toLocaleDateString('ru-RU', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : '';
+
+            html += `
+                <div style="background: #f0f9ff; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb; margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <p style="margin: 0; color: #1e40af; font-weight: 600;">
+                            Ответ поддержки
+                        </p>
+                        ${repliedDate ? `<span style="color: #6b7280; font-size: 12px;">${repliedDate}</span>` : ''}
+                    </div>
+                    <p style="margin: 0; white-space: pre-wrap; color: #374151;">${feedback.adminReply}</p>
+                </div>
+            `;
+        } else {
+            html += `
+                <div style="background: #fefce8; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-top: 15px;">
+                    <p style="margin: 0; color: #92400e; font-size: 14px;">
+                        ⏳ Ваше обращение находится на рассмотрении. Мы ответим вам в ближайшее время.
+                    </p>
+                </div>
+            `;
+        }
+
+        item.innerHTML = html;
+        feedbacksList.appendChild(item);
+    });
+}
+// Показ модального окна обратной связи
+function showFeedbackModal() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showNotification('Необходимо войти в систему!', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('feedbackModal');
+    const form = document.getElementById('feedbackForm');
+    
+    // Заполняем данные пользователя
+    document.getElementById('feedback-name').value = currentUser.fio || '';
+    document.getElementById('feedback-email').value = currentUser.email || '';
+    document.getElementById('feedback-phone').value = currentUser.phone || '';
+    
+    modal.style.display = 'block';
+    
+    // Обработка формы
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const feedbackData = {
+            name: formData.get('name'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            subject: formData.get('subject'),
+            message: formData.get('message'),
+            userId: currentUser.id // Сохраняем ID пользователя
+        };
+
+        // Валидация
+        if (!feedbackData.name.trim()) {
+            showNotification('Пожалуйста, введите ваше имя!', 'error');
+            return;
+        }
+
+        if (!feedbackData.email.trim()) {
+            showNotification('Пожалуйста, введите email!', 'error');
+            return;
+        }
+
+        if (!feedbackData.subject) {
+            showNotification('Пожалуйста, выберите тему!', 'error');
+            return;
+        }
+
+        if (!feedbackData.message.trim()) {
+            showNotification('Пожалуйста, введите сообщение!', 'error');
+            return;
+        }
+
+        // Email валидация
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(feedbackData.email)) {
+            showNotification('Пожалуйста, введите корректный email!', 'error');
+            return;
+        }
+
+        // Создаем обращение
+        const success = createFeedback(feedbackData);
+        if (success) {
+            closeFeedbackModal();
+            loadUserFeedbacks(); // Обновляем список обращений
+        }
+    };
+}
+
+// Закрытие модального окна обратной связи
+function closeFeedbackModal() {
+    const modal = document.getElementById('feedbackModal');
+    modal.style.display = 'none';
+    document.getElementById('feedbackForm').reset();
+}
+
 
 // Вспомогательная функция для форматирования даты
 function formatDate(dateString) {
@@ -1872,7 +2079,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Проверяем авторизацию и обновляем навигацию
     const currentUser = getCurrentUser();
     if (currentUser) {
-        // Показываем кнопку "Профиль" вместо "Войти"
+
         const loginBtn = document.querySelector('.login-btn');
         if (loginBtn) {
             loginBtn.textContent = 'Профиль';
@@ -1907,21 +2114,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    const jobSearchSection = document.querySelector('.job-search-section');
     // Загрузка вакансий на странице поиска работы
-    if (window.location.pathname.includes('job-search.html')) {
+    if (jobSearchSection) {
         loadJobsToPage();
         
         // Инициализация обработчиков поиска и фильтров
         initJobSearchFilters();
+        populateProfessionOptions();
     }
     
     // Загрузка последних вакансий на главной странице
-    if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
+    const isHomePage = document.querySelector('.hero');
+    if (isHomePage) {
         loadLatestJobsToHomePage();
     }
     
     // Автозаполнение формы резюме данными пользователя
-    if (window.location.pathname.includes('resume-create.html')) {
+    const resumeForm = document.getElementById('resumeForm');
+    if (resumeForm) {
         if (isLoggedIn()) {
             fillResumeFormWithUserData();
         }
@@ -1936,6 +2147,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // Инициализация формы обратной связи
+    initFeedbackForm();
     
     // Инициализация всех интерактивных элементов
     console.log('Lime website initialized successfully!');
@@ -2447,6 +2660,45 @@ async function loadLatestJobsToHomePage() {
     });
 }
 
+// Динамическое наполнение списка профессий из вакансий
+async function populateProfessionOptions() {
+    const professionSelect = document.getElementById('profession-select');
+    if (!professionSelect) return;
+    
+    // Удаляем ранее добавленные динамические опции
+    professionSelect.querySelectorAll('option[data-dynamic="true"]').forEach(option => option.remove());
+    
+    const jobs = await loadJobs();
+    const existingValues = new Set(
+        Array.from(professionSelect.options).map(option => option.value.toLowerCase())
+    );
+    
+    const dynamicOptions = [];
+    
+    jobs.forEach(job => {
+        const title = (job.title || '').trim();
+        if (!title) return;
+        const lowerTitle = title.toLowerCase();
+        
+        if (existingValues.has(lowerTitle)) {
+            return;
+        }
+        
+        existingValues.add(lowerTitle);
+        dynamicOptions.push(title);
+    });
+    
+    dynamicOptions
+        .sort((a, b) => a.localeCompare(b, 'ru', { sensitivity: 'base' }))
+        .forEach(title => {
+            const option = document.createElement('option');
+            option.value = title;
+            option.textContent = title;
+            option.dataset.dynamic = 'true';
+            professionSelect.appendChild(option);
+        });
+}
+
 // Фильтрация вакансий по критериям
 function filterJobs(jobs, filters) {
     let filtered = [...jobs];
@@ -2484,8 +2736,9 @@ function filterJobs(jobs, filters) {
             'designer': ['дизайн', 'design', 'ui', 'ux'],
             'manager': ['менеджер', 'manager', 'управление', 'руководство']
         };
+        const professionKey = filters.profession.toLowerCase();
+        const keywords = professionMap[professionKey] || [];
         
-        const keywords = professionMap[filters.profession] || [];
         if (keywords.length > 0) {
             filtered = filtered.filter(job => {
                 const title = (job.title || '').toLowerCase();
@@ -2493,6 +2746,11 @@ function filterJobs(jobs, filters) {
                 const tags = (job.tags || []).join(' ').toLowerCase();
                 const searchText = (title + ' ' + description + ' ' + tags).toLowerCase();
                 return keywords.some(keyword => searchText.includes(keyword));
+            });
+        } else {
+            filtered = filtered.filter(job => {
+                const title = (job.title || '').toLowerCase();
+                return title.includes(professionKey);
             });
         }
     }
@@ -2682,8 +2940,8 @@ function initJobSearchFilters() {
             filters.location = searchInputs[1].value.trim();
         }
         
-        // Профессия (первый select в фильтрах)
-        const professionSelect = document.querySelectorAll('.filter-group select')[0];
+        // Профессия
+        const professionSelect = document.getElementById('profession-select');
         if (professionSelect && professionSelect.value) {
             filters.profession = professionSelect.value;
         }
@@ -2697,10 +2955,10 @@ function initJobSearchFilters() {
             filters.salaryMax = salaryInputs[1].value;
         }
         
-        // Регион (второй select в фильтрах)
-        const regionSelects = document.querySelectorAll('.filter-select');
-        if (regionSelects.length > 1 && regionSelects[1].value) {
-            filters.region = regionSelects[1].value;
+        // Регион
+        const regionSelect = document.getElementById('region-select');
+        if (regionSelect && regionSelect.value) {
+            filters.region = regionSelect.value;
         }
         
         // Тип занятости
@@ -2724,15 +2982,15 @@ function initJobSearchFilters() {
         if (searchInputs.length > 0) searchInputs[0].value = '';
         if (searchInputs.length > 1) searchInputs[1].value = '';
         
-        const professionSelect = document.querySelectorAll('.filter-group select')[0];
+        const professionSelect = document.getElementById('profession-select');
         if (professionSelect) professionSelect.value = '';
         
         const salaryInputs = document.querySelectorAll('.salary-input');
         salaryInputs.forEach(input => input.value = '');
         
-        const regionSelects = document.querySelectorAll('.filter-select');
-        if (regionSelects.length > 1) {
-            regionSelects[1].value = '';
+        const regionSelect = document.getElementById('region-select');
+        if (regionSelect) {
+            regionSelect.value = '';
         }
         
         const employmentCheckboxes = document.querySelectorAll('.employment-types input[type="checkbox"]');
@@ -2889,3 +3147,339 @@ function showResumeSelectionModal(jobId, resumes) {
         document.body.removeChild(modal);
     });
 }
+
+// ========== РАБОТА С ОБРАТНОЙ СВЯЗЬЮ ==========
+
+// Загрузка обращений из localStorage
+function loadFeedbacks() {
+    const feedbacksFromStorage = localStorage.getItem('feedbacks');
+    if (feedbacksFromStorage) {
+        try {
+            const feedbacks = JSON.parse(feedbacksFromStorage);
+            if (Array.isArray(feedbacks)) {
+                return feedbacks;
+            }
+        } catch (e) {
+            console.error('Ошибка парсинга обращений из localStorage:', e);
+        }
+    }
+    return [];
+}
+
+// Сохранение обращений в localStorage
+function saveFeedbacks(feedbacks) {
+    if (!Array.isArray(feedbacks)) {
+        console.error('Ошибка: feedbacks должен быть массивом');
+        return false;
+    }
+    localStorage.setItem('feedbacks', JSON.stringify(feedbacks));
+    console.log('✅ Обращения сохранены в localStorage');
+    return true;
+}
+
+// Обновление обращения (для администратора)
+function updateFeedback(feedbackId, updates) {
+    const feedbacks = loadFeedbacks();
+    const feedbackIndex = feedbacks.findIndex(fb => fb.id === feedbackId);
+    
+    if (feedbackIndex === -1) {
+        showNotification('Обращение не найдено!', 'error');
+        return false;
+    }
+    
+    // Обновляем поля
+    if (updates.adminReply !== undefined) {
+        feedbacks[feedbackIndex].adminReply = updates.adminReply;
+        feedbacks[feedbackIndex].repliedAt = new Date().toISOString();
+    }
+    
+    if (updates.status !== undefined) {
+        feedbacks[feedbackIndex].status = updates.status;
+    }
+    
+    if (saveFeedbacks(feedbacks)) {
+        showNotification('Обращение обновлено', 'success');
+        return true;
+    }
+    
+    return false;
+}
+
+// Получение обращения по ID
+function getFeedbackById(feedbackId) {
+    const feedbacks = loadFeedbacks();
+    return feedbacks.find(fb => fb.id === feedbackId);
+}
+
+// Получение всех обращений (для администратора)
+function getAllFeedbacks() {
+    return loadFeedbacks();
+}
+
+// Инициализация формы обратной связи
+function initFeedbackForm() {
+    const feedbackForm = document.querySelector('.feedback-form');
+    if (!feedbackForm) return;
+    
+    feedbackForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(feedbackForm);
+        const feedbackData = {
+            name: formData.get('name'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            subject: formData.get('subject'),
+            message: formData.get('message')
+        };
+        
+        // Валидация
+        if (!feedbackData.name.trim()) {
+            showNotification('Пожалуйста, введите ваше имя!', 'error');
+            return;
+        }
+        
+        if (!feedbackData.email.trim()) {
+            showNotification('Пожалуйста, введите email!', 'error');
+            return;
+        }
+        
+        if (!feedbackData.subject) {
+            showNotification('Пожалуйста, выберите тему!', 'error');
+            return;
+        }
+        
+        if (!feedbackData.message.trim()) {
+            showNotification('Пожалуйста, введите сообщение!', 'error');
+            return;
+        }
+        
+        // Email валидация
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(feedbackData.email)) {
+            showNotification('Пожалуйста, введите корректный email!', 'error');
+            return;
+        }
+        
+        // Создаем обращение
+        const success = createFeedback(feedbackData);
+        if (success) {
+            feedbackForm.reset();
+        }
+    });
+}
+
+// Загрузка обращений пользователя
+function loadUserFeedbacks() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+
+    const feedbacks = getAllFeedbacks();
+    // Фильтруем обращения по email пользователя
+    const userFeedbacks = feedbacks.filter(fb => 
+        fb.email === currentUser.email || 
+        (currentUser.id && fb.userId === currentUser.id)
+    );
+
+    const feedbacksList = document.getElementById('feedbacks-list');
+    if (!feedbacksList) return;
+
+    feedbacksList.innerHTML = '';
+
+    if (userFeedbacks.length === 0) {
+        feedbacksList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #6b7280;">
+                <p>У вас пока нет обращений в поддержку</p>
+                <p style="margin-top: 10px; font-size: 14px;">Нажмите "Новое обращение" чтобы связаться с нами</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Сортируем по дате (новые сначала)
+    userFeedbacks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    userFeedbacks.forEach(feedback => {
+        const item = document.createElement('div');
+        item.className = 'feedback-item';
+        item.style.cssText = `
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+        `;
+
+        const createdDate = new Date(feedback.createdAt).toLocaleDateString('ru-RU', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const statusText = {
+            'new': 'Новое',
+            'in_progress': 'В работе',
+            'resolved': 'Решено'
+        };
+
+        const statusStyle = {
+            'new': 'background: #fef3c7; color: #92400e;',
+            'in_progress': 'background: #dbeafe; color: #1e40af;',
+            'resolved': 'background: #d1fae5; color: #065f46;'
+        };
+
+        const subjectText = {
+            'technical': 'Техническая проблема',
+            'question': 'Вопрос по услугам',
+            'suggestion': 'Предложение по улучшению',
+            'complaint': 'Жалоба',
+            'other': 'Другое'
+        };
+
+        let html = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                <div>
+                    <h3 style="margin: 0 0 5px 0; color: #1f2937;">${subjectText[feedback.subject] || feedback.subject}</h3>
+                    <p style="margin: 0; color: #6b7280;">${createdDate}</p>
+                </div>
+                <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; ${statusStyle[feedback.status] || statusStyle['new']}">
+                    ${statusText[feedback.status] || 'Новое'}
+                </span>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <p style="margin: 0; color: #374151;"><strong>Ваше сообщение:</strong></p>
+                <p style="margin: 10px 0 0 0; white-space: pre-wrap;">${feedback.message}</p>
+            </div>
+        `;
+
+        if (feedback.adminReply) {
+            const repliedDate = feedback.repliedAt ? new Date(feedback.repliedAt).toLocaleDateString('ru-RU', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : '';
+
+            html += `
+                <div style="background: #f0f9ff; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb;">
+                    <p style="margin: 0 0 5px 0; color: #374151;">
+                        <strong>Ответ поддержки:</strong> 
+                        ${repliedDate ? `<span style="color: #6b7280; font-size: 14px;">(${repliedDate})</span>` : ''}
+                    </p>
+                    <p style="margin: 0; white-space: pre-wrap;">${feedback.adminReply}</p>
+                </div>
+            `;
+        }
+
+        item.innerHTML = html;
+        feedbacksList.appendChild(item);
+    });
+}
+
+// Показ модального окна обратной связи
+function showFeedbackModal() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showNotification('Необходимо войти в систему!', 'error');
+        return;
+    }
+
+    const modal = document.getElementById('feedbackModal');
+    const form = document.getElementById('feedbackForm');
+    
+    // Заполняем данные пользователя
+    document.getElementById('feedback-name').value = currentUser.fio || '';
+    document.getElementById('feedback-email').value = currentUser.email || '';
+    document.getElementById('feedback-phone').value = currentUser.phone || '';
+    
+    modal.style.display = 'block';
+    
+    // Обработка формы
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const feedbackData = {
+            name: formData.get('name'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            subject: formData.get('subject'),
+            message: formData.get('message'),
+            userId: currentUser.id // Сохраняем ID пользователя
+        };
+
+        // Валидация
+        if (!feedbackData.name.trim()) {
+            showNotification('Пожалуйста, введите ваше имя!', 'error');
+            return;
+        }
+
+        if (!feedbackData.email.trim()) {
+            showNotification('Пожалуйста, введите email!', 'error');
+            return;
+        }
+
+        if (!feedbackData.subject) {
+            showNotification('Пожалуйста, выберите тему!', 'error');
+            return;
+        }
+
+        if (!feedbackData.message.trim()) {
+            showNotification('Пожалуйста, введите сообщение!', 'error');
+            return;
+        }
+
+        // Email валидация
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(feedbackData.email)) {
+            showNotification('Пожалуйста, введите корректный email!', 'error');
+            return;
+        }
+
+        // Создаем обращение
+        const success = createFeedback(feedbackData);
+        if (success) {
+            closeFeedbackModal();
+            loadUserFeedbacks(); // Обновляем список обращений
+        }
+    };
+}
+
+// Закрытие модального окна обратной связи
+function closeFeedbackModal() {
+    const modal = document.getElementById('feedbackModal');
+    modal.style.display = 'none';
+    document.getElementById('feedbackForm').reset();
+}
+
+// Обновляем функцию createFeedback для сохранения userId
+function createFeedback(feedbackData) {
+    const feedbacks = loadFeedbacks();
+    
+    const newFeedback = {
+        id: 'feedback_' + Date.now().toString(),
+        name: feedbackData.name.trim(),
+        email: feedbackData.email.trim(),
+        phone: feedbackData.phone ? feedbackData.phone.trim() : '',
+        subject: feedbackData.subject,
+        message: feedbackData.message.trim(),
+        status: 'new',
+        adminReply: '',
+        userId: feedbackData.userId || null, // Сохраняем ID пользователя
+        createdAt: new Date().toISOString(),
+        repliedAt: null
+    };
+    
+    feedbacks.push(newFeedback);
+    
+    if (saveFeedbacks(feedbacks)) {
+        showNotification('Сообщение отправлено успешно! Мы ответим вам в ближайшее время.', 'success');
+        return true;
+    }
+    
+    return false;
+}
+
