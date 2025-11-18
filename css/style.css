@@ -1745,3 +1745,174 @@ body {
         width: 100%;
     }
 }
+
+
+/* Стили для миниатюры предпросмотра резюме */
+.template-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: start;
+}
+
+.template-preview {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+}
+
+.resume-mini-preview {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.mini-resume-header {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.mini-photo img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #2563eb;
+}
+
+.mini-info {
+    flex: 1;
+}
+
+.mini-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.mini-info p {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.mini-resume-body {
+    font-size: 12px;
+}
+
+.mini-section {
+    margin-bottom: 12px;
+}
+
+.mini-section strong {
+    color: #374151;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mini-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.mini-skill-tag {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.mini-section p {
+    margin: 5px 0 0 0;
+    color: #4b5563;
+    line-height: 1.4;
+}
+
+.template-description h3 {
+    color: #1f2937;
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+.template-description p {
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.template-features {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 25px;
+}
+
+.template-features li {
+    padding: 8px 0;
+    color: #374151;
+    font-size: 14px;
+}
+
+.template-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.template-actions .btn {
+    flex: 1;
+    min-width: 160px;
+    padding: 12px 20px;
+    font-size: 14px;
+}
+
+.preview-info {
+    background: #f0f9ff;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #2563eb;
+}
+
+.preview-info p {
+    margin: 0;
+    color: #1e40af;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .template-info {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .template-actions {
+        flex-direction: column;
+    }
+    
+    .template-actions .btn {
+        min-width: auto;
+    }
+    
+    .mini-resume-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .mini-photo {
+        align-self: center;
+    }
+}

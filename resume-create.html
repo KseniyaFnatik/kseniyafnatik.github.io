@@ -189,24 +189,61 @@
                 </div>
 
                 <!-- Шаблон резюме -->
-                <div class="form-section">
-                    <h2>Шаблон резюме</h2>
-                    <div class="template-info">
-                        <div class="template-preview">
-                            <img src="images/template-classic.jpg" alt="Профессиональный шаблон">
-                        </div>
-                        <div class="template-description">
-                            <h3>Профессиональный шаблон</h3>
-                            <p>Строгий и профессиональный дизайн, подходящий для любых сфер деятельности. Четкая структура и читаемость обеспечат хорошее впечатление у работодателей.</p>
-                            <ul class="template-features">
-                                <li>Четкая структура разделов</li>
-                                <li>Профессиональное оформление</li>
-                                <li>Адаптивный дизайн</li>
-                                <li>Экспорт в PDF и DOCX</li>
-                            </ul>
-                        </div>
+<!-- Шаблон резюме -->
+<div class="form-section">
+    <h2>Предпросмотр резюме</h2>
+    <div class="template-info">
+        <div class="template-preview">
+            <!-- Миниатюра предпросмотра резюме -->
+            <div class="resume-mini-preview" id="resumeMiniPreview">
+                <div class="mini-resume-header">
+                    <div class="mini-photo">
+                        <img id="miniAvatar" src="images/default-avatar.jpg" alt="Фото">
+                    </div>
+                    <div class="mini-info">
+                        <h4 id="miniFullName">Иванов Иван Иванович</h4>
+                        <p id="miniContacts">📱 +7 (999) 123-45-67 | 📧 example@email.com</p>
                     </div>
                 </div>
+                <div class="mini-resume-body">
+                    <div class="mini-section">
+                        <strong>Навыки:</strong>
+                        <div id="miniSkills" class="mini-skills">
+                            <span class="mini-skill-tag">JavaScript</span>
+                            <span class="mini-skill-tag">HTML/CSS</span>
+                            <span class="mini-skill-tag">React</span>
+                        </div>
+                    </div>
+                    <div class="mini-section">
+                        <strong>Образование:</strong>
+                        <p id="miniEducation">МГУ им. Ломоносова, Бакалавр информатики</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="template-description">
+            <h3>Профессиональный шаблон</h3>
+            <p>Ваше резюме автоматически формируется на основе введенных данных. Предпросмотр обновляется в реальном времени.</p>
+            <ul class="template-features">
+                <li>✅ Автозаполнение данными профиля</li>
+                <li>✅ Профессиональное оформление</li>
+                <li>✅ Адаптивный дизайн</li>
+                <li>✅ Поддержка печати и экспорта</li>
+            </ul>
+            <div class="template-actions">
+                <button class="btn btn-primary" onclick="showFullResumePreview()">
+                    👁️ Полный предпросмотр
+                </button>
+                <button class="btn btn-secondary" onclick="updateMiniPreview()">
+                    🔄 Обновить предпросмотр
+                </button>
+            </div>
+            <div class="preview-info">
+                <p><small>💡 <strong>Совет:</strong> Заполните все разделы формы для лучшего отображения резюме</small></p>
+            </div>
+        </div>
+    </div>
+</div>
 
                 <!-- Кнопки действий -->
                 <div class="form-actions">
