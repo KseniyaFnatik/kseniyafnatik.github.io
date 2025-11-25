@@ -96,6 +96,43 @@
         .logout-admin-btn:hover {
             background: #dc2626;
         }
+        .admin-filters {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        .admin-filters .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .admin-filters .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+            font-size: 14px;
+        }
+        .admin-filters input,
+        .admin-filters select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .admin-filters .filter-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .admin-filters .btn {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -158,18 +195,6 @@
                 <p>Пользователей</p>
             </div>
             <div class="stat-card">
-                <h3 id="resumes-count">0</h3>
-                <p>Резюме</p>
-            </div>
-            <div class="stat-card">
-                <h3 id="applications-count">0</h3>
-                <p>Откликов</p>
-            </div>
-            <div class="stat-card">
-                <h3 id="jobs-count">0</h3>
-                <p>Вакансий</p>
-            </div>
-            <div class="stat-card">
                 <h3 id="feedbacks-count">0</h3>
                 <p>Обращений</p>
             </div>
@@ -178,6 +203,16 @@
             <!-- Пользователи -->
             <div class="admin-section">
                 <h2>Пользователи</h2>
+                <div class="admin-filters" id="users-filters">
+                    <div class="filter-group">
+                        <label>Поиск (ФИО, логин, телефон)</label>
+                        <input type="text" id="users-search" placeholder="Введите текст для поиска...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" onclick="applyUsersFilter()">Применить</button>
+                        <button class="btn btn-secondary" onclick="resetUsersFilter()">Сбросить</button>
+                    </div>
+                </div>
                 <div class="resume-table-container">
                     <table class="data-table">
                         <thead>
@@ -201,6 +236,16 @@
             <!-- Резюме -->
             <div class="admin-section">
                 <h2>Резюме</h2>
+                <div class="admin-filters" id="resumes-filters">
+                    <div class="filter-group">
+                        <label>Поиск (ФИО, телефон, email)</label>
+                        <input type="text" id="resumes-search" placeholder="Введите текст для поиска...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" onclick="applyResumesFilter()">Применить</button>
+                        <button class="btn btn-secondary" onclick="resetResumesFilter()">Сбросить</button>
+                    </div>
+                </div>
                 <div class="resume-table-container">
                     <table class="data-table">
                         <thead>
@@ -224,6 +269,25 @@
             <!-- Вакансии (модерация) -->
             <div class="admin-section">
                 <h2>Модерация вакансий</h2>
+                <div class="admin-filters" id="jobs-moderation-filters">
+                    <div class="filter-group">
+                        <label>Поиск (название, компания)</label>
+                        <input type="text" id="jobs-moderation-search" placeholder="Введите текст для поиска...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Статус модерации</label>
+                        <select id="jobs-moderation-status">
+                            <option value="">Все статусы</option>
+                            <option value="pending">На модерации</option>
+                            <option value="approved">Одобрено</option>
+                            <option value="rejected">Отклонено</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" onclick="applyJobsModerationFilter()">Применить</button>
+                        <button class="btn btn-secondary" onclick="resetJobsModerationFilter()">Сбросить</button>
+                    </div>
+                </div>
                 <div class="resume-table-container">
                     <table class="data-table">
                         <thead>
@@ -248,6 +312,25 @@
             <!-- Резюме (модерация) -->
             <div class="admin-section">
                 <h2>Модерация резюме</h2>
+                <div class="admin-filters" id="resumes-moderation-filters">
+                    <div class="filter-group">
+                        <label>Поиск (ФИО, телефон, email)</label>
+                        <input type="text" id="resumes-moderation-search" placeholder="Введите текст для поиска...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Статус модерации</label>
+                        <select id="resumes-moderation-status">
+                            <option value="">Все статусы</option>
+                            <option value="pending">На модерации</option>
+                            <option value="approved">Одобрено</option>
+                            <option value="rejected">Отклонено</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" onclick="applyResumesModerationFilter()">Применить</button>
+                        <button class="btn btn-secondary" onclick="resetResumesModerationFilter()">Сбросить</button>
+                    </div>
+                </div>
                 <div class="resume-table-container">
                     <table class="data-table">
                         <thead>
@@ -273,6 +356,26 @@
             <!-- Отклики -->
             <div class="admin-section">
                 <h2>Отклики</h2>
+                <div class="admin-filters" id="applications-filters">
+                    <div class="filter-group">
+                        <label>Поиск (вакансия, компания)</label>
+                        <input type="text" id="applications-search" placeholder="Введите текст для поиска...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Статус</label>
+                        <select id="applications-status">
+                            <option value="">Все статусы</option>
+                            <option value="sent">Отправлено</option>
+                            <option value="viewed">Просмотрено</option>
+                            <option value="invited">Приглашение</option>
+                            <option value="rejected">Отклонено</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" onclick="applyApplicationsFilter()">Применить</button>
+                        <button class="btn btn-secondary" onclick="resetApplicationsFilter()">Сбросить</button>
+                    </div>
+                </div>
                 <div class="resume-table-container">
                     <table class="data-table">
                         <thead>
@@ -300,6 +403,25 @@
     <h2>Обратная связь 
         <span id="new-feedbacks-count" style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 10px; font-size: 14px; margin-left: 10px;">0</span>
     </h2>
+    <div class="admin-filters" id="feedbacks-filters">
+        <div class="filter-group">
+            <label>Поиск (имя, email, тема)</label>
+            <input type="text" id="feedbacks-search" placeholder="Введите текст для поиска...">
+        </div>
+        <div class="filter-group">
+            <label>Статус</label>
+            <select id="feedbacks-status">
+                <option value="">Все статусы</option>
+                <option value="new">Новое</option>
+                <option value="in_progress">В работе</option>
+                <option value="resolved">Решено</option>
+            </select>
+        </div>
+        <div class="filter-actions">
+            <button class="btn btn-primary" onclick="applyFeedbacksFilter()">Применить</button>
+            <button class="btn btn-secondary" onclick="resetFeedbacksFilter()">Сбросить</button>
+        </div>
+    </div>
     <div class="resume-table-container">
         <table class="data-table">
             <thead>

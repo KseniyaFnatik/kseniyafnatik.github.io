@@ -499,214 +499,7 @@ function loadUserProfile() {
             emailElement.textContent = user.email || 'Не указано';
         }
     }
-    document.getElementById('feedbacks-section').style.display = 'block';
-    loadUserFeedbacks();
 }
-
-// Загрузка обращений пользователя
-function loadUserFeedbacks() {
-    const currentUser = getCurrentUser();
-    if (!currentUser) return;
-
-    const feedbacks = getAllFeedbacks();
-    
-    // Улучшенная фильтрация обращений
-    const userFeedbacks = feedbacks.filter(fb => {
-        // Проверяем по email ИЛИ по userId
-        const emailMatch = fb.email === currentUser.email;
-        const userIdMatch = currentUser.id && fb.userId === currentUser.id;
-        const nameMatch = fb.name === currentUser.fio; // Дополнительная проверка по имени
-        
-        return emailMatch || userIdMatch || nameMatch;
-    });
-
-    const feedbacksList = document.getElementById('feedbacks-list');
-    if (!feedbacksList) return;
-
-    feedbacksList.innerHTML = '';
-
-    if (userFeedbacks.length === 0) {
-        feedbacksList.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #6b7280;">
-                <p>У вас пока нет обращений в поддержку</p>
-                <p style="margin-top: 10px; font-size: 14px;">Нажмите "Новое обращение" чтобы связаться с нами</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Сортируем по дате (новые сначала)
-    userFeedbacks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    userFeedbacks.forEach(feedback => {
-        const item = document.createElement('div');
-        item.className = 'feedback-item';
-        item.style.cssText = `
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        `;
-
-        const createdDate = new Date(feedback.createdAt).toLocaleDateString('ru-RU', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
-        const statusText = {
-            'new': 'Новое',
-            'in_progress': 'В работе',
-            'resolved': 'Решено'
-        };
-
-        const statusStyle = {
-            'new': 'background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;',
-            'in_progress': 'background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;',
-            'resolved': 'background: #d1fae5; color: #065f46; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;'
-        };
-
-        const subjectText = {
-            'technical': 'Техническая проблема',
-            'question': 'Вопрос по услугам',
-            'suggestion': 'Предложение по улучшению',
-            'complaint': 'Жалоба',
-            'other': 'Другое'
-        };
-
-        let html = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                <div style="flex: 1;">
-                    <h3 style="margin: 0 0 5px 0; color: #1f2937; font-size: 18px;">${subjectText[feedback.subject] || feedback.subject}</h3>
-                    <p style="margin: 0; color: #6b7280; font-size: 14px;">${createdDate}</p>
-                </div>
-                <span style="${statusStyle[feedback.status] || statusStyle['new']}">
-                    ${statusText[feedback.status] || 'Новое'}
-                </span>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <p style="margin: 0 0 8px 0; color: #374151; font-weight: 500;">Ваше сообщение:</p>
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #e5e7eb;">
-                    <p style="margin: 0; white-space: pre-wrap; color: #4b5563;">${feedback.message}</p>
-                </div>
-            </div>
-        `;
-
-        // ВАЖНО: Проверяем наличие ответа администратора
-        if (feedback.adminReply && feedback.adminReply.trim() !== '') {
-            const repliedDate = feedback.repliedAt ? new Date(feedback.repliedAt).toLocaleDateString('ru-RU', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            }) : '';
-
-            html += `
-                <div style="background: #f0f9ff; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb; margin-top: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <p style="margin: 0; color: #1e40af; font-weight: 600;">
-                            Ответ поддержки
-                        </p>
-                        ${repliedDate ? `<span style="color: #6b7280; font-size: 12px;">${repliedDate}</span>` : ''}
-                    </div>
-                    <p style="margin: 0; white-space: pre-wrap; color: #374151;">${feedback.adminReply}</p>
-                </div>
-            `;
-        } else {
-            html += `
-                <div style="background: #fefce8; padding: 12px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-top: 15px;">
-                    <p style="margin: 0; color: #92400e; font-size: 14px;">
-                        ⏳ Ваше обращение находится на рассмотрении. Мы ответим вам в ближайшее время.
-                    </p>
-                </div>
-            `;
-        }
-
-        item.innerHTML = html;
-        feedbacksList.appendChild(item);
-    });
-}
-// Показ модального окна обратной связи
-function showFeedbackModal() {
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-        showNotification('Необходимо войти в систему!', 'error');
-        return;
-    }
-
-    const modal = document.getElementById('feedbackModal');
-    const form = document.getElementById('feedbackForm');
-    
-    // Заполняем данные пользователя
-    document.getElementById('feedback-name').value = currentUser.fio || '';
-    document.getElementById('feedback-email').value = currentUser.email || '';
-    document.getElementById('feedback-phone').value = currentUser.phone || '';
-    
-    modal.style.display = 'block';
-    
-    // Обработка формы
-    form.onsubmit = function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(form);
-        const feedbackData = {
-            name: formData.get('name'),
-            email: formData.get('email'),
-            phone: formData.get('phone'),
-            subject: formData.get('subject'),
-            message: formData.get('message'),
-            userId: currentUser.id // Сохраняем ID пользователя
-        };
-
-        // Валидация
-        if (!feedbackData.name.trim()) {
-            showNotification('Пожалуйста, введите ваше имя!', 'error');
-            return;
-        }
-
-        if (!feedbackData.email.trim()) {
-            showNotification('Пожалуйста, введите email!', 'error');
-            return;
-        }
-
-        if (!feedbackData.subject) {
-            showNotification('Пожалуйста, выберите тему!', 'error');
-            return;
-        }
-
-        if (!feedbackData.message.trim()) {
-            showNotification('Пожалуйста, введите сообщение!', 'error');
-            return;
-        }
-
-        // Email валидация
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(feedbackData.email)) {
-            showNotification('Пожалуйста, введите корректный email!', 'error');
-            return;
-        }
-
-        // Создаем обращение
-        const success = createFeedback(feedbackData);
-        if (success) {
-            closeFeedbackModal();
-            loadUserFeedbacks(); // Обновляем список обращений
-        }
-    };
-}
-
-// Закрытие модального окна обратной связи
-function closeFeedbackModal() {
-    const modal = document.getElementById('feedbackModal');
-    modal.style.display = 'none';
-    document.getElementById('feedbackForm').reset();
-}
-
 
 // Вспомогательная функция для форматирования даты
 function formatDate(dateString) {
@@ -838,6 +631,48 @@ forms.forEach(form => {
         // Обработка формы резюме
         else if (form.id === 'resumeForm') {
             saveResume(form);
+        }
+        // Обработка формы обратной связи на странице контактов
+        else if (form.classList.contains('feedback-form') && form.id === 'contacts-feedback-form') {
+            // Проверяем авторизацию
+            if (!isLoggedIn()) {
+                showNotification('Для отправки обращения необходимо войти в систему!', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+            
+            const name = form.querySelector('#feedback-name')?.value.trim();
+            const email = form.querySelector('#feedback-email')?.value.trim();
+            const phone = form.querySelector('#feedback-phone')?.value.trim();
+            const subject = form.querySelector('#feedback-subject')?.value;
+            const message = form.querySelector('#feedback-message')?.value.trim();
+            
+            if (!name || !email || !subject || !message) {
+                showNotification('Пожалуйста, заполните все обязательные поля!', 'error');
+                return;
+            }
+            
+            // Создаем обращение
+            if (typeof createFeedback === 'function') {
+                const success = createFeedback({
+                    name: name,
+                    email: email,
+                    phone: phone || '',
+                    subject: subject,
+                    message: message
+                });
+                
+                if (success) {
+                    showNotification('Ваше обращение успешно отправлено!', 'success');
+                    form.reset();
+                } else {
+                    showNotification('Ошибка при отправке обращения', 'error');
+                }
+            } else {
+                showNotification('Функция отправки обращений недоступна', 'error');
+            }
         } else {
             // Обычная отправка формы
             showNotification('Форма отправлена успешно!', 'success');
@@ -1165,12 +1000,12 @@ async function loadEmployerJobs() {
     document.querySelectorAll('.delete-job').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const jobId = e.target.getAttribute('data-job-id');
-            if (confirm('Вы уверены, что хотите удалить эту вакансию?')) {
+            showConfirmDialog('Вы уверены, что хотите удалить эту вакансию?', () => {
                 deleteJob(jobId);
                 loadEmployerJobs();
                 loadJobApplications();
                 showNotification('Вакансия удалена', 'success');
-            }
+            });
         });
     });
 }
@@ -2074,16 +1909,22 @@ document.querySelectorAll('.feature-card, .vacancy-card, .team-member').forEach(
     observer.observe(card);
 });
 
-// Инициализация при загрузке страницы
+    // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     // Проверяем авторизацию и обновляем навигацию
     const currentUser = getCurrentUser();
     if (currentUser) {
-
+        // Показываем кнопку "Профиль" вместо "Войти"
         const loginBtn = document.querySelector('.login-btn');
         if (loginBtn) {
             loginBtn.textContent = 'Профиль';
             loginBtn.href = 'profile.html';
+        }
+        
+        // Скрываем кнопку создания резюме на главной для работодателей
+        const createResumeHeroBtn = document.getElementById('create-resume-hero-btn');
+        if (createResumeHeroBtn && currentUser.status === 'employer') {
+            createResumeHeroBtn.style.display = 'none';
         }
     }
     
@@ -2133,8 +1974,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Автозаполнение формы резюме данными пользователя
     const resumeForm = document.getElementById('resumeForm');
     if (resumeForm) {
-        if (isLoggedIn()) {
-            fillResumeFormWithUserData();
+        // Проверяем, что пользователь авторизован и является соискателем
+        if (!isLoggedIn()) {
+            window.location.href = 'login.html';
+        } else {
+            const currentUser = getCurrentUser();
+            if (currentUser && currentUser.status === 'employer') {
+                // Работодатель не может создавать резюме
+                showNotification('Работодатели не могут создавать резюме!', 'error');
+                setTimeout(() => {
+                    window.location.href = 'profile.html';
+                }, 2000);
+            } else {
+                fillResumeFormWithUserData();
+                initResumeForm();
+            }
         }
     }
     
@@ -2147,8 +2001,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Инициализация формы обратной связи
-    initFeedbackForm();
+    // Проверка авторизации для формы обратной связи на странице контактов
+    const feedbackFormContainer = document.getElementById('feedback-form-container');
+    if (feedbackFormContainer) {
+        const feedbackForm = document.getElementById('contacts-feedback-form');
+        const feedbackLoginRequired = document.getElementById('feedback-login-required');
+        
+        if (isLoggedIn()) {
+            // Пользователь авторизован - показываем форму
+            if (feedbackForm) {
+                feedbackForm.style.display = 'block';
+            }
+            if (feedbackLoginRequired) {
+                feedbackLoginRequired.style.display = 'none';
+            }
+        } else {
+            // Пользователь не авторизован - показываем сообщение
+            if (feedbackForm) {
+                feedbackForm.style.display = 'none';
+            }
+            if (feedbackLoginRequired) {
+                feedbackLoginRequired.style.display = 'block';
+            }
+        }
+    }
     
     // Инициализация всех интерактивных элементов
     console.log('Lime website initialized successfully!');
@@ -2198,9 +2074,9 @@ function loadUserProfile() {
     
     if (userStatus === 'employer') {
         // Для работодателей
-        document.getElementById('create-resume-btn').style.display = 'inline-block';
+        document.getElementById('create-resume-btn').style.display = 'none'; // Убираем возможность создания резюме
         document.getElementById('create-job-btn').style.display = 'inline-block';
-        document.getElementById('resumes-section').style.display = 'block';
+        document.getElementById('resumes-section').style.display = 'none'; // Скрываем секцию резюме
         document.getElementById('applications-section').style.display = 'none';
         document.getElementById('notifications-section').style.display = 'none';
         document.getElementById('jobs-section').style.display = 'block';
@@ -2210,8 +2086,7 @@ function loadUserProfile() {
         loadEmployerJobs();
         // Загружаем отклики на вакансии
         loadJobApplications();
-        // Загружаем и отображаем резюме работодателя
-        loadUserResumes();
+        // НЕ загружаем резюме для работодателя
     } else {
         // Для соискателей
         document.getElementById('create-resume-btn').style.display = 'inline-block';
@@ -2309,11 +2184,11 @@ function loadUserResumes() {
     document.querySelectorAll('.delete-resume').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const resumeId = e.target.getAttribute('data-resume-id');
-            if (confirm('Вы уверены, что хотите удалить это резюме?')) {
+            showConfirmDialog('Вы уверены, что хотите удалить это резюме?', () => {
                 deleteResume(resumeId);
                 loadUserResumes(); // Перезагружаем список
                 showNotification('Резюме удалено', 'success');
-            }
+            });
         });
     });
 }
@@ -2652,11 +2527,19 @@ async function loadLatestJobsToHomePage() {
             ${tagsHtml ? `<div class="vacancy-tags">${tagsHtml}</div>` : ''}
             <div class="vacancy-footer">
                 <span class="vacancy-date">${dateText}</span>
-                <a href="job-search.html" class="btn btn-primary">Подробнее</a>
+                <button class="btn btn-primary view-job-details-home" data-job-id="${job.id}">Подробнее</button>
             </div>
         `;
         
         latestJobsList.appendChild(card);
+    });
+    
+    // Добавляем обработчики для кнопок просмотра деталей на главной
+    document.querySelectorAll('.view-job-details-home').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const jobId = e.target.getAttribute('data-job-id');
+            await showJobDetails(jobId);
+        });
     });
 }
 
@@ -2897,18 +2780,18 @@ async function loadJobsToPage(filters = {}, sortBy = 'relevance') {
             ${tagsHtml ? `<div class="vacancy-tags">${tagsHtml}</div>` : ''}
             <div class="vacancy-footer">
                 <span class="vacancy-date">${dateText}</span>
-                <button class="btn btn-primary apply-job" data-job-id="${job.id}">Откликнуться</button>
+                <button class="btn btn-primary view-job-details" data-job-id="${job.id}">Подробнее</button>
             </div>
         `;
         
         vacanciesList.appendChild(card);
     });
     
-    // Добавляем обработчики для кнопок отклика
-    document.querySelectorAll('.apply-job').forEach(btn => {
+    // Добавляем обработчики для кнопок просмотра деталей
+    document.querySelectorAll('.view-job-details').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const jobId = e.target.getAttribute('data-job-id');
-            await handleJobApplication(jobId);
+            await showJobDetails(jobId);
         });
     });
 }
@@ -3033,7 +2916,157 @@ function initJobSearchFilters() {
     }
 }
 
-// Обработка отклика на вакансию
+// Просмотр деталей вакансии
+async function showJobDetails(jobId) {
+    const job = await getJobById(jobId);
+    if (!job) {
+        showNotification('Вакансия не найдена!', 'error');
+        return;
+    }
+    
+    const currentUser = getCurrentUser();
+    const isEmployer = currentUser && currentUser.status === 'employer';
+    const isApplicant = currentUser && currentUser.status === 'applicant';
+    
+    // Создаем модальное окно для просмотра деталей вакансии
+    const modal = document.createElement('div');
+    modal.className = 'job-details-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 10000;
+        overflow-y: auto;
+        padding: 20px;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        position: relative;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    `;
+    
+    const datePosted = new Date(job.datePosted).toLocaleDateString('ru-RU');
+    const tagsHtml = (job.tags || []).map(tag => `<span class="tag" style="display: inline-block; padding: 5px 12px; background: #e0e7ff; color: #4338ca; border-radius: 12px; font-size: 14px; margin-right: 8px; margin-bottom: 8px;">${tag}</span>`).join('');
+    
+    let applyButtonHtml = '';
+    if (isApplicant && !isEmployer) {
+        // Для соискателей показываем кнопку отклика
+        const resumes = getUserResumes(currentUser.id);
+        if (resumes.length > 0) {
+            applyButtonHtml = `
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+                    <button class="btn btn-primary" id="applyJobFromDetailsBtn" data-job-id="${job.id}" style="width: 100%; padding: 12px; font-size: 16px;">
+                        Откликнуться на вакансию
+                    </button>
+                </div>
+            `;
+        } else {
+            applyButtonHtml = `
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+                    <p style="color: #ef4444; margin-bottom: 15px;">Для отклика необходимо создать резюме</p>
+                    <a href="resume-create.html" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 16px; text-align: center; display: block; text-decoration: none;">
+                        Создать резюме
+                    </a>
+                </div>
+            `;
+        }
+    } else if (!currentUser) {
+        applyButtonHtml = `
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+                <p style="color: #6b7280; margin-bottom: 15px;">Для отклика необходимо войти в систему</p>
+                <a href="login.html" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 16px; text-align: center; display: block; text-decoration: none;">
+                    Войти
+                </a>
+            </div>
+        `;
+    }
+    
+    content.innerHTML = `
+        <button class="close-modal" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 24px; cursor: pointer; z-index: 1;">&times;</button>
+        <div style="margin-bottom: 30px;">
+            <h1 style="margin: 0 0 10px 0; color: #1f2937; font-size: 28px;">${job.title || 'Название не указано'}</h1>
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <strong style="color: #374151;">${job.company || 'Компания не указана'}</strong>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; color: #6b7280;">
+                    📍 ${job.location || 'Местоположение не указано'}
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; color: #10b981; font-weight: 600;">
+                    💰 ${job.salary || 'Зарплата не указана'}
+                </div>
+            </div>
+            <div style="color: #6b7280; font-size: 14px;">
+                📅 Опубликовано: ${datePosted}
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+            <h2 style="color: #68A800; border-bottom: 2px solid #68A800; padding-bottom: 5px; margin-bottom: 15px; font-size: 20px;">Описание</h2>
+            <p style="color: #4b5563; line-height: 1.8; white-space: pre-wrap;">${job.description || 'Описание отсутствует'}</p>
+        </div>
+        
+        ${job.requirements ? `
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #68A800; border-bottom: 2px solid #68A800; padding-bottom: 5px; margin-bottom: 15px; font-size: 20px;">Требования</h2>
+                <p style="color: #4b5563; line-height: 1.8; white-space: pre-wrap;">${job.requirements}</p>
+            </div>
+        ` : ''}
+        
+        ${tagsHtml ? `
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #68A800; border-bottom: 2px solid #68A800; padding-bottom: 5px; margin-bottom: 15px; font-size: 20px;">Технологии</h2>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${tagsHtml}
+                </div>
+            </div>
+        ` : ''}
+        
+        ${job.employmentType ? `
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #68A800; border-bottom: 2px solid #68A800; padding-bottom: 5px; margin-bottom: 15px; font-size: 20px;">Тип занятости</h2>
+                <p style="color: #4b5563;">${job.employmentType}</p>
+            </div>
+        ` : ''}
+        
+        ${applyButtonHtml}
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Закрытие модального окна
+    content.querySelector('.close-modal').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+    
+    // Обработчик кнопки отклика (только для соискателей)
+    const applyBtn = content.querySelector('#applyJobFromDetailsBtn');
+    if (applyBtn) {
+        applyBtn.addEventListener('click', async () => {
+            const jobId = applyBtn.getAttribute('data-job-id');
+            document.body.removeChild(modal);
+            await handleJobApplication(jobId);
+        });
+    }
+}
+
+// Обработка отклика на вакансию (только для соискателей)
 async function handleJobApplication(jobId) {
     const currentUser = getCurrentUser();
     if (!currentUser) {
@@ -3041,6 +3074,12 @@ async function handleJobApplication(jobId) {
         setTimeout(() => {
             window.location.href = 'login.html';
         }, 1500);
+        return;
+    }
+    
+    // Проверяем, что пользователь - соискатель
+    if (currentUser.status === 'employer') {
+        showNotification('Работодатели не могут откликаться на вакансии!', 'error');
         return;
     }
     
@@ -3058,14 +3097,7 @@ async function handleJobApplication(jobId) {
     if (resumes.length === 1) {
         const success = await createApplication(jobId, resumes[0].id);
         if (success) {
-            // Обновляем кнопку
-            const btn = document.querySelector(`[data-job-id="${jobId}"]`);
-            if (btn) {
-                btn.textContent = 'Отклик отправлен';
-                btn.disabled = true;
-                btn.classList.remove('btn-primary');
-                btn.classList.add('btn-secondary');
-            }
+            showNotification('Отклик успешно отправлен!', 'success');
         }
     } else {
         // Если резюме несколько, показываем выбор
@@ -3148,9 +3180,407 @@ function showResumeSelectionModal(jobId, resumes) {
     });
 }
 
+// ========== ФУНКЦИОНАЛ СОЗДАНИЯ РЕЗЮМЕ ==========
+
+// Инициализация формы резюме
+function initResumeForm() {
+    const form = document.getElementById('resumeForm');
+    if (!form) return;
+    
+    // Обработчик для кнопки "Сохранить черновик"
+    const saveDraftBtn = document.getElementById('saveDraftBtn');
+    if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            saveResumeDraft();
+        });
+    }
+    
+    // Обработчик для кнопки "Предварительный просмотр"
+    const previewBtn = document.getElementById('previewBtn');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showFullResumePreview();
+        });
+    }
+    
+    // Обработчик для кнопки "Обновить предпросмотр" в мини-предпросмотре
+    const updatePreviewBtn = document.getElementById('updatePreviewBtn');
+    if (updatePreviewBtn) {
+        updatePreviewBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            updateMiniPreview();
+        });
+    }
+    
+    // Обработчик для кнопки "Полный предпросмотр" в мини-предпросмотре
+    const fullPreviewBtn = document.getElementById('fullPreviewBtn');
+    if (fullPreviewBtn) {
+        fullPreviewBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            showFullResumePreview();
+        });
+    }
+    
+    // Автоматическое обновление мини-предпросмотра при изменении полей
+    const formInputs = form.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('input', () => {
+            updateMiniPreview();
+        });
+        input.addEventListener('change', () => {
+            updateMiniPreview();
+        });
+    });
+    
+    // Загрузка черновика при загрузке страницы
+    loadResumeDraft();
+    
+    // Первоначальное обновление предпросмотра
+    setTimeout(() => {
+        updateMiniPreview();
+    }, 100);
+}
+
+// Обновление мини-предпросмотра резюме
+function updateMiniPreview() {
+    const form = document.getElementById('resumeForm');
+    if (!form) return;
+    
+    // Получаем данные из формы
+    const fullName = form.querySelector('#fullName')?.value || 'Иванов Иван Иванович';
+    const phone = form.querySelector('#phone')?.value || '+7 (999) 123-45-67';
+    const email = form.querySelector('#email')?.value || 'example@email.com';
+    const professionalSkills = form.querySelector('#professionalSkills')?.value || '';
+    const university = form.querySelector('#university')?.value || '';
+    const degree = form.querySelector('#degree')?.value || '';
+    
+    // Обновляем мини-предпросмотр
+    const miniFullName = document.getElementById('miniFullName');
+    const miniContacts = document.getElementById('miniContacts');
+    const miniSkills = document.getElementById('miniSkills');
+    const miniEducation = document.getElementById('miniEducation');
+    
+    if (miniFullName) {
+        miniFullName.textContent = fullName;
+    }
+    
+    if (miniContacts) {
+        miniContacts.textContent = `📱 ${phone} | 📧 ${email}`;
+    }
+    
+    if (miniSkills) {
+        if (professionalSkills) {
+            const skills = professionalSkills.split(',').map(s => s.trim()).filter(s => s);
+            miniSkills.innerHTML = skills.slice(0, 5).map(skill => 
+                `<span class="mini-skill-tag">${skill}</span>`
+            ).join('');
+        } else {
+            miniSkills.innerHTML = '<span class="mini-skill-tag">Навыки не указаны</span>';
+        }
+    }
+    
+    if (miniEducation) {
+        if (university && degree) {
+            miniEducation.textContent = `${university}, ${degree}`;
+        } else {
+            miniEducation.textContent = 'Образование не указано';
+        }
+    }
+    
+    // Обновляем аватар из профиля пользователя
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.avatar) {
+        const miniAvatar = document.getElementById('miniAvatar');
+        if (miniAvatar) {
+            miniAvatar.src = currentUser.avatar;
+        }
+    }
+}
+
+// Полный предпросмотр резюме
+function showFullResumePreview() {
+    const form = document.getElementById('resumeForm');
+    if (!form) return;
+    
+    // Собираем данные из формы
+    const resumeData = collectResumeDataFromForm(form);
+    
+    // Создаем модальное окно для полного предпросмотра
+    const modal = document.createElement('div');
+    modal.className = 'resume-preview-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 10000;
+        overflow-y: auto;
+        padding: 20px;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        padding: 40px;
+        border-radius: 8px;
+        position: relative;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    `;
+    
+    // Генерируем HTML резюме
+    const resumeHTML = generateResumeHTML(resumeData);
+    
+    content.innerHTML = `
+        <button class="close-modal" style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 24px; cursor: pointer; z-index: 1;">&times;</button>
+        <div style="text-align: right; margin-bottom: 20px;">
+            <button class="btn btn-secondary" id="updatePreviewFromModalBtn">Обновить</button>
+        </div>
+        ${resumeHTML}
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Закрытие модального окна
+    content.querySelector('.close-modal').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+    
+    // Обработчик кнопки обновления из модального окна
+    const updateBtn = content.querySelector('#updatePreviewFromModalBtn');
+    if (updateBtn) {
+        updateBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+            showFullResumePreview();
+        });
+    }
+}
+
+// Сбор данных резюме из формы
+function collectResumeDataFromForm(form) {
+    const currentUser = getCurrentUser();
+    
+    return {
+        fullName: form.querySelector('#fullName')?.value || '',
+        birthDate: form.querySelector('#birthDate')?.value || '',
+        phone: form.querySelector('#phone')?.value || '',
+        email: form.querySelector('#email')?.value || '',
+        address: form.querySelector('#address')?.value || '',
+        desiredSalary: form.querySelector('#desiredSalary')?.value || '',
+        education: collectEducation(form),
+        experience: collectExperience(form),
+        professionalSkills: form.querySelector('#professionalSkills')?.value || '',
+        personalSkills: form.querySelector('#personalSkills')?.value || '',
+        hasExperience: form.querySelector('input[name="hasExperience"]:checked')?.value === 'yes',
+        avatar: currentUser?.avatar || 'images/default-avatar.jpg'
+    };
+}
+
+// Генерация HTML резюме для предпросмотра
+function generateResumeHTML(data) {
+    const currentUser = getCurrentUser();
+    const avatar = currentUser?.avatar || 'images/default-avatar.jpg';
+    
+    let html = `
+        <div class="resume-preview" style="font-family: 'Segoe UI', Arial, sans-serif; color: #333;">
+            <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #68A800;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 15px;">
+                    <img src="${avatar}" alt="Фото" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #68A800;">
+                    <div style="text-align: left;">
+                        <h1 style="margin: 0; color: #1f2937; font-size: 32px;">${data.fullName || 'Иванов Иван Иванович'}</h1>
+                        <p style="margin: 10px 0 5px 0; color: #6b7280; font-size: 16px;">
+                            📱 ${data.phone || 'Не указан'} | 📧 ${data.email || 'Не указан'}
+                        </p>
+                        ${data.address ? `<p style="margin: 5px 0; color: #6b7280; font-size: 14px;">📍 ${data.address}</p>` : ''}
+                        ${data.birthDate ? `<p style="margin: 5px 0; color: #6b7280; font-size: 14px;">🎂 ${formatDate(data.birthDate)}</p>` : ''}
+                    </div>
+                </div>
+            </div>
+    `;
+    
+    // Образование
+    if (data.education && data.education.length > 0) {
+        html += `
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #68A800; border-bottom: 2px solid #68A800; padding-bottom: 5px; margin-bottom: 15px;">Образование</h2>
+        `;
+        data.education.forEach(edu => {
+            html += `
+                <div style="margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                    <h3 style="margin: 0 0 5px 0; color: #1f2937;">${edu.university || 'Не указано'}</h3>
+                    <p style="margin: 5px 0; color: #374151;"><strong>Специальность:</strong> ${edu.degree || 'Не указано'}</p>
+                    ${edu.graduationYear ? `<p style="margin: 5px 0; color: #374151;"><strong>Год окончания:</strong> ${edu.graduationYear}</p>` : ''}
+                    ${edu.gpa ? `<p style="margin: 5px 0; color: #374151;"><strong>Средний балл:</strong> ${edu.gpa}</p>` : ''}
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    
+    // Опыт работы
+    if (data.hasExperience && data.experience && data.experience.length > 0) {
+        html += `
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #68A800; border-bottom: 2px solid #68A800; padding-bottom: 5px; margin-bottom: 15px;">Опыт работы</h2>
+        `;
+        data.experience.forEach(exp => {
+            const startDate = exp.startDate ? formatDate(exp.startDate) : 'Не указано';
+            const endDate = exp.endDate ? formatDate(exp.endDate) : 'Настоящее время';
+            html += `
+                <div style="margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                    <h3 style="margin: 0 0 5px 0; color: #1f2937;">${exp.position || 'Не указано'}</h3>
+                    <p style="margin: 5px 0; color: #374151;"><strong>Компания:</strong> ${exp.company || 'Не указано'}</p>
+                    <p style="margin: 5px 0; color: #374151;"><strong>Период:</strong> ${startDate} - ${endDate}</p>
+                    ${exp.responsibilities ? `<p style="margin: 10px 0 0 0; color: #4b5563; line-height: 1.6;">${exp.responsibilities}</p>` : ''}
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    
+    // Навыки
+    if (data.professionalSkills || data.personalSkills) {
+        html += `
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #68A800; border-bottom: 2px solid #68A800; padding-bottom: 5px; margin-bottom: 15px;">Навыки</h2>
+        `;
+        if (data.professionalSkills) {
+            html += `
+                <div style="margin-bottom: 15px;">
+                    <h3 style="margin: 0 0 10px 0; color: #374151; font-size: 18px;">Профессиональные навыки</h3>
+                    <p style="color: #4b5563; line-height: 1.6;">${data.professionalSkills}</p>
+                </div>
+            `;
+        }
+        if (data.personalSkills) {
+            html += `
+                <div style="margin-bottom: 15px;">
+                    <h3 style="margin: 0 0 10px 0; color: #374151; font-size: 18px;">Личные качества</h3>
+                    <p style="color: #4b5563; line-height: 1.6;">${data.personalSkills}</p>
+                </div>
+            `;
+        }
+        html += `</div>`;
+    }
+    
+    // Желаемая зарплата
+    if (data.desiredSalary) {
+        html += `
+            <div style="margin-bottom: 30px;">
+                <h2 style="color: #68A800; border-bottom: 2px solid #68A800; padding-bottom: 5px; margin-bottom: 15px;">Желаемая зарплата</h2>
+                <p style="font-size: 18px; color: #1f2937;"><strong>${parseInt(data.desiredSalary).toLocaleString('ru-RU')} руб.</strong></p>
+            </div>
+        `;
+    }
+    
+    html += `</div>`;
+    
+    return html;
+}
+
+// Сохранение черновика резюме
+function saveResumeDraft() {
+    const form = document.getElementById('resumeForm');
+    if (!form) return;
+    
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        showNotification('Необходимо войти в систему!', 'error');
+        return;
+    }
+    
+    // Собираем данные из формы
+    const draftData = {
+        formData: {},
+        timestamp: new Date().toISOString()
+    };
+    
+    // Сохраняем все поля формы
+    const formInputs = form.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        if (input.type === 'radio') {
+            if (input.checked) {
+                draftData.formData[input.name] = input.value;
+            }
+        } else {
+            draftData.formData[input.id || input.name] = input.value;
+        }
+    });
+    
+    // Сохраняем черновик в localStorage
+    const draftKey = `resume_draft_${currentUser.id}`;
+    localStorage.setItem(draftKey, JSON.stringify(draftData));
+    
+    showNotification('Черновик успешно сохранен!', 'success');
+}
+
+// Загрузка черновика резюме
+function loadResumeDraft() {
+    const form = document.getElementById('resumeForm');
+    if (!form) return;
+    
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+    
+    const draftKey = `resume_draft_${currentUser.id}`;
+    const draftDataStr = localStorage.getItem(draftKey);
+    
+    if (!draftDataStr) return;
+    
+    try {
+        const draftData = JSON.parse(draftDataStr);
+        const formData = draftData.formData || {};
+        
+        // Заполняем форму данными из черновика
+        Object.keys(formData).forEach(key => {
+            const input = form.querySelector(`#${key}`) || form.querySelector(`[name="${key}"]`);
+            if (input) {
+                if (input.type === 'radio') {
+                    if (input.value === formData[key]) {
+                        input.checked = true;
+                    }
+                } else {
+                    input.value = formData[key];
+                }
+            }
+        });
+        
+        // Обновляем предпросмотр
+        updateMiniPreview();
+        
+        // Показываем уведомление
+        showNotification('Черновик загружен!', 'info');
+    } catch (error) {
+        console.error('Ошибка загрузки черновика:', error);
+    }
+}
+
+// Форматирование даты
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
 // ========== РАБОТА С ОБРАТНОЙ СВЯЗЬЮ ==========
 
-// Загрузка обращений из localStorage
+// Загрузка обратной связи из localStorage
 function loadFeedbacks() {
     const feedbacksFromStorage = localStorage.getItem('feedbacks');
     if (feedbacksFromStorage) {
@@ -3160,49 +3590,25 @@ function loadFeedbacks() {
                 return feedbacks;
             }
         } catch (e) {
-            console.error('Ошибка парсинга обращений из localStorage:', e);
+            console.error('Ошибка парсинга обратной связи:', e);
         }
     }
     return [];
 }
 
-// Сохранение обращений в localStorage
+// Сохранение обратной связи в localStorage
 function saveFeedbacks(feedbacks) {
     if (!Array.isArray(feedbacks)) {
         console.error('Ошибка: feedbacks должен быть массивом');
         return false;
     }
     localStorage.setItem('feedbacks', JSON.stringify(feedbacks));
-    console.log('✅ Обращения сохранены в localStorage');
     return true;
 }
 
-// Обновление обращения (для администратора)
-function updateFeedback(feedbackId, updates) {
-    const feedbacks = loadFeedbacks();
-    const feedbackIndex = feedbacks.findIndex(fb => fb.id === feedbackId);
-    
-    if (feedbackIndex === -1) {
-        showNotification('Обращение не найдено!', 'error');
-        return false;
-    }
-    
-    // Обновляем поля
-    if (updates.adminReply !== undefined) {
-        feedbacks[feedbackIndex].adminReply = updates.adminReply;
-        feedbacks[feedbackIndex].repliedAt = new Date().toISOString();
-    }
-    
-    if (updates.status !== undefined) {
-        feedbacks[feedbackIndex].status = updates.status;
-    }
-    
-    if (saveFeedbacks(feedbacks)) {
-        showNotification('Обращение обновлено', 'success');
-        return true;
-    }
-    
-    return false;
+// Получение всех обращений
+function getAllFeedbacks() {
+    return loadFeedbacks();
 }
 
 // Получение обращения по ID
@@ -3211,275 +3617,56 @@ function getFeedbackById(feedbackId) {
     return feedbacks.find(fb => fb.id === feedbackId);
 }
 
-// Получение всех обращений (для администратора)
-function getAllFeedbacks() {
-    return loadFeedbacks();
-}
-
-// Инициализация формы обратной связи
-function initFeedbackForm() {
-    const feedbackForm = document.querySelector('.feedback-form');
-    if (!feedbackForm) return;
-    
-    feedbackForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(feedbackForm);
-        const feedbackData = {
-            name: formData.get('name'),
-            email: formData.get('email'),
-            phone: formData.get('phone'),
-            subject: formData.get('subject'),
-            message: formData.get('message')
-        };
-        
-        // Валидация
-        if (!feedbackData.name.trim()) {
-            showNotification('Пожалуйста, введите ваше имя!', 'error');
-            return;
-        }
-        
-        if (!feedbackData.email.trim()) {
-            showNotification('Пожалуйста, введите email!', 'error');
-            return;
-        }
-        
-        if (!feedbackData.subject) {
-            showNotification('Пожалуйста, выберите тему!', 'error');
-            return;
-        }
-        
-        if (!feedbackData.message.trim()) {
-            showNotification('Пожалуйста, введите сообщение!', 'error');
-            return;
-        }
-        
-        // Email валидация
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(feedbackData.email)) {
-            showNotification('Пожалуйста, введите корректный email!', 'error');
-            return;
-        }
-        
-        // Создаем обращение
-        const success = createFeedback(feedbackData);
-        if (success) {
-            feedbackForm.reset();
-        }
-    });
-}
-
-// Загрузка обращений пользователя
-function loadUserFeedbacks() {
-    const currentUser = getCurrentUser();
-    if (!currentUser) return;
-
-    const feedbacks = getAllFeedbacks();
-    // Фильтруем обращения по email пользователя
-    const userFeedbacks = feedbacks.filter(fb => 
-        fb.email === currentUser.email || 
-        (currentUser.id && fb.userId === currentUser.id)
-    );
-
-    const feedbacksList = document.getElementById('feedbacks-list');
-    if (!feedbacksList) return;
-
-    feedbacksList.innerHTML = '';
-
-    if (userFeedbacks.length === 0) {
-        feedbacksList.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #6b7280;">
-                <p>У вас пока нет обращений в поддержку</p>
-                <p style="margin-top: 10px; font-size: 14px;">Нажмите "Новое обращение" чтобы связаться с нами</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Сортируем по дате (новые сначала)
-    userFeedbacks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    userFeedbacks.forEach(feedback => {
-        const item = document.createElement('div');
-        item.className = 'feedback-item';
-        item.style.cssText = `
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-        `;
-
-        const createdDate = new Date(feedback.createdAt).toLocaleDateString('ru-RU', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
-        const statusText = {
-            'new': 'Новое',
-            'in_progress': 'В работе',
-            'resolved': 'Решено'
-        };
-
-        const statusStyle = {
-            'new': 'background: #fef3c7; color: #92400e;',
-            'in_progress': 'background: #dbeafe; color: #1e40af;',
-            'resolved': 'background: #d1fae5; color: #065f46;'
-        };
-
-        const subjectText = {
-            'technical': 'Техническая проблема',
-            'question': 'Вопрос по услугам',
-            'suggestion': 'Предложение по улучшению',
-            'complaint': 'Жалоба',
-            'other': 'Другое'
-        };
-
-        let html = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                <div>
-                    <h3 style="margin: 0 0 5px 0; color: #1f2937;">${subjectText[feedback.subject] || feedback.subject}</h3>
-                    <p style="margin: 0; color: #6b7280;">${createdDate}</p>
-                </div>
-                <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; ${statusStyle[feedback.status] || statusStyle['new']}">
-                    ${statusText[feedback.status] || 'Новое'}
-                </span>
-            </div>
-            <div style="margin-bottom: 15px;">
-                <p style="margin: 0; color: #374151;"><strong>Ваше сообщение:</strong></p>
-                <p style="margin: 10px 0 0 0; white-space: pre-wrap;">${feedback.message}</p>
-            </div>
-        `;
-
-        if (feedback.adminReply) {
-            const repliedDate = feedback.repliedAt ? new Date(feedback.repliedAt).toLocaleDateString('ru-RU', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            }) : '';
-
-            html += `
-                <div style="background: #f0f9ff; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb;">
-                    <p style="margin: 0 0 5px 0; color: #374151;">
-                        <strong>Ответ поддержки:</strong> 
-                        ${repliedDate ? `<span style="color: #6b7280; font-size: 14px;">(${repliedDate})</span>` : ''}
-                    </p>
-                    <p style="margin: 0; white-space: pre-wrap;">${feedback.adminReply}</p>
-                </div>
-            `;
-        }
-
-        item.innerHTML = html;
-        feedbacksList.appendChild(item);
-    });
-}
-
-// Показ модального окна обратной связи
-function showFeedbackModal() {
+// Создание нового обращения
+function createFeedback(feedbackData) {
     const currentUser = getCurrentUser();
     if (!currentUser) {
         showNotification('Необходимо войти в систему!', 'error');
-        return;
+        return false;
     }
-
-    const modal = document.getElementById('feedbackModal');
-    const form = document.getElementById('feedbackForm');
     
-    // Заполняем данные пользователя
-    document.getElementById('feedback-name').value = currentUser.fio || '';
-    document.getElementById('feedback-email').value = currentUser.email || '';
-    document.getElementById('feedback-phone').value = currentUser.phone || '';
-    
-    modal.style.display = 'block';
-    
-    // Обработка формы
-    form.onsubmit = function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(form);
-        const feedbackData = {
-            name: formData.get('name'),
-            email: formData.get('email'),
-            phone: formData.get('phone'),
-            subject: formData.get('subject'),
-            message: formData.get('message'),
-            userId: currentUser.id // Сохраняем ID пользователя
-        };
-
-        // Валидация
-        if (!feedbackData.name.trim()) {
-            showNotification('Пожалуйста, введите ваше имя!', 'error');
-            return;
-        }
-
-        if (!feedbackData.email.trim()) {
-            showNotification('Пожалуйста, введите email!', 'error');
-            return;
-        }
-
-        if (!feedbackData.subject) {
-            showNotification('Пожалуйста, выберите тему!', 'error');
-            return;
-        }
-
-        if (!feedbackData.message.trim()) {
-            showNotification('Пожалуйста, введите сообщение!', 'error');
-            return;
-        }
-
-        // Email валидация
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(feedbackData.email)) {
-            showNotification('Пожалуйста, введите корректный email!', 'error');
-            return;
-        }
-
-        // Создаем обращение
-        const success = createFeedback(feedbackData);
-        if (success) {
-            closeFeedbackModal();
-            loadUserFeedbacks(); // Обновляем список обращений
-        }
-    };
-}
-
-// Закрытие модального окна обратной связи
-function closeFeedbackModal() {
-    const modal = document.getElementById('feedbackModal');
-    modal.style.display = 'none';
-    document.getElementById('feedbackForm').reset();
-}
-
-// Обновляем функцию createFeedback для сохранения userId
-function createFeedback(feedbackData) {
     const feedbacks = loadFeedbacks();
     
     const newFeedback = {
         id: 'feedback_' + Date.now().toString(),
-        name: feedbackData.name.trim(),
-        email: feedbackData.email.trim(),
-        phone: feedbackData.phone ? feedbackData.phone.trim() : '',
+        userId: currentUser.id,
+        name: feedbackData.name,
+        email: feedbackData.email,
+        phone: feedbackData.phone || '',
         subject: feedbackData.subject,
-        message: feedbackData.message.trim(),
+        message: feedbackData.message,
         status: 'new',
-        adminReply: '',
-        userId: feedbackData.userId || null, // Сохраняем ID пользователя
         createdAt: new Date().toISOString(),
+        adminReply: null,
         repliedAt: null
     };
     
     feedbacks.push(newFeedback);
     
     if (saveFeedbacks(feedbacks)) {
-        showNotification('Сообщение отправлено успешно! Мы ответим вам в ближайшее время.', 'success');
         return true;
     }
     
     return false;
 }
 
+// Обновление обращения
+function updateFeedback(feedbackId, updates) {
+    const feedbacks = loadFeedbacks();
+    const feedbackIndex = feedbacks.findIndex(fb => fb.id === feedbackId);
+    
+    if (feedbackIndex === -1) {
+        return false;
+    }
+    
+    feedbacks[feedbackIndex] = {
+        ...feedbacks[feedbackIndex],
+        ...updates
+    };
+    
+    if (updates.adminReply) {
+        feedbacks[feedbackIndex].repliedAt = new Date().toISOString();
+    }
+    
+    return saveFeedbacks(feedbacks);
+}

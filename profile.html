@@ -557,17 +557,17 @@
 
             // Валидация
             if (!fio) {
-                alert('Пожалуйста, введите ФИО');
+                showNotification('Пожалуйста, введите ФИО', 'error');
                 return;
             }
 
             if (!phone) {
-                alert('Пожалуйста, введите телефон');
+                showNotification('Пожалуйста, введите телефон', 'error');
                 return;
             }
 
             if (!email) {
-                alert('Пожалуйста, введите email');
+                showNotification('Пожалуйста, введите email', 'error');
                 return;
             }
 

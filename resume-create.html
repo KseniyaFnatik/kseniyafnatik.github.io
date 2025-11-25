@@ -128,7 +128,7 @@
 
                 <!-- Опыт работы -->
                 <div class="form-section">
-                    <h2>Опыт работы *</h2>
+                    <h2>Опыт работы(обязательно для выбора)</h2>
                     <div class="experience-toggle">
                         <label class="radio-label">
                             <input type="radio" name="hasExperience" value="yes" required>
@@ -231,24 +231,16 @@
                 <li>✅ Поддержка печати и экспорта</li>
             </ul>
             <div class="template-actions">
-                <button class="btn btn-primary" onclick="showFullResumePreview()">
-                    👁️ Полный предпросмотр
+                <button class="btn btn-primary" id="fullPreviewBtn">
+                    Полный предпросмотр
                 </button>
-                <button class="btn btn-secondary" onclick="updateMiniPreview()">
-                    🔄 Обновить предпросмотр
-                </button>
-            </div>
-            <div class="preview-info">
-                <p><small>💡 <strong>Совет:</strong> Заполните все разделы формы для лучшего отображения резюме</small></p>
             </div>
         </div>
     </div>
 </div>
-
                 <!-- Кнопки действий -->
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary">Сохранить черновик</button>
-                    <button type="button" class="btn btn-primary" id="previewBtn">Предварительный просмотр</button>
+                    <button type="button" class="btn btn-secondary" id="saveDraftBtn">Сохранить черновик</button>
                     <button type="submit" class="btn btn-success">Создать резюме</button>
                 </div>
             </form>

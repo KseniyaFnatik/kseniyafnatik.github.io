@@ -116,9 +116,13 @@
             </div>
 
             <!-- Форма обратной связи -->
-            <div class="feedback-form-container">
+            <div class="feedback-form-container" id="feedback-form-container">
                 <h2>Обратная связь</h2>
-                <form class="feedback-form">
+                <div id="feedback-login-required" style="display: none; padding: 20px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b; margin-bottom: 20px;">
+                    <p style="margin: 0 0 15px 0; color: #92400e; font-weight: 500;">Для отправки обращения необходимо войти в систему</p>
+                    <a href="login.html" class="btn btn-primary">Войти</a>
+                </div>
+                <form class="feedback-form" id="contacts-feedback-form" style="display: none;">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="feedback-name">Имя</label>
