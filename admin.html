@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ панель - Lime</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <a href="admin.html">Lime Admin</a>
+            </div>
+            <div><button id="logoutBtn" class="nav-btn logout-btn">Выйти</button></div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <div class="container">
+            <!-- Статистика -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Всего пользователей</h3>
+                    <div class="stat-number" id="totalUsers">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Активных</h3>
+                    <div class="stat-number" id="activeUsers">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Модераторов</h3>
+                    <div class="stat-number" id="moderatorsCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Новых за неделю</h3>
+                    <div class="stat-number" id="newUsers">0</div>
+                </div>
+            </div>
+
+            <!-- Управление пользователями -->
+            <div class="admin-section active" id="usersSection">
+                <div class="section-header">
+                    <h2>Управление пользователями</h2>
+                    <div class="section-actions">
+                        <input type="text" id="userSearch" placeholder="Поиск пользователей..." class="search-input">
+                        <button class="btn btn-primary" onclick="adminManager.exportUsers()">Экспорт</button>
+                    </div>
+                </div>
+
+                <div class="users-table">
+                    <div class="table-header">
+                        <div>ID</div>
+                        <div>ФИО</div>
+                        <div>Логин</div>
+                        <div>Телефон</div>
+                        <div>Дата регистрации</div>
+                        <div>Статус</div>
+                        <div>Действия</div>
+                    </div>
+                    <div class="table-body" id="usersList">
+                        <!-- Список пользователей -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Управление модераторами -->
+            <div class="admin-section" id="moderatorsSection">
+                <div class="section-header">
+                    <h2>Управление модераторами</h2>
+                    <button class="btn btn-primary" onclick="adminManager.showAddModeratorModal()">Добавить модератора</button>
+                </div>
+
+                <div class="moderators-table">
+                    <div class="table-header">
+                        <div>ID</div>
+                        <div>ФИО</div>
+                        <div>Логин</div>
+                        <div>Телефон</div>
+                        <div>Дата назначения</div>
+                        <div>Действия</div>
+                    </div>
+                    <div class="table-body" id="moderatorsList">
+                        <!-- Список модераторов -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления модератора -->
+    <div id="addModeratorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Добавить модератора</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addModeratorForm">
+                    <div class="form-group">
+                        <label for="moderatorFullName">ФИО *</label>
+                        <input type="text" id="moderatorFullName" name="fullName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="moderatorUsername">Логин *</label>
+                        <input type="text" id="moderatorUsername" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="moderatorPhone">Телефон *</label>
+                        <input type="tel" id="moderatorPhone" name="phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="moderatorPassword">Пароль *</label>
+                        <input type="password" id="moderatorPassword" name="password" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="adminManager.closeModeratorModal()">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="adminManager.addModerator()">Добавить</button>
+            </div>
+        </div>
+    </div>
+    <!-- Добавьте этот код после существующего модального окна -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header">
+                <h3>Подтверждение действия</h3>
+            </div>
+            <div class="modal-body" style="display: flex; justify-content: center;">
+                <p id="confirmMessage">Вы уверены, что хотите выполнить это действие?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="adminManager.closeConfirmModal()">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmActionBtn">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
