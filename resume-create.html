@@ -4,277 +4,185 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Создание резюме - Lime</title>
-    <link rel="icon" href="data:,">
-    <script>
-        // Регистрация Service Worker для перехвата всех запросов
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
-                .then(() => console.log('Service Worker зарегистрирован'))
-                .catch(error => console.log('Ошибка регистрации SW:', error));
-        }
-        
-        (function() {
-            const existingPages = ['index.html', 'about.html', 'contacts.html', 'job-search.html', 'login.html', 'profile.html', 'resume-create.html', '404.html', 'admin.html', 'yandex_9692edf2d716bce0.html'];
-            let currentPage = window.location.pathname.split('/').pop();
-            if (!currentPage || currentPage === '' || currentPage === '/') currentPage = 'index.html';
-            if (currentPage !== '404.html' && currentPage.endsWith('.html') && !existingPages.includes(currentPage)) {
-                window.location.replace('404.html');
-            }
-        })();
-    </script>
     <link rel="stylesheet" href="css/style.css">
-    <script src="js/404-check.js"></script>
+    <link rel="stylesheet" href="css/resume.css">
 </head>
 <body>
-    <!-- Навигационное меню -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <a href="index.html">
-                    <img src="images/logo.svg" alt="Lime" class="logo-img">
-                </a>
+                <a href="index.html">Lime</a>
             </div>
             <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="about.html" class="nav-link">О компании</a>
-                </li>
-                <li class="nav-item">
-                    <a href="contacts.html" class="nav-link">Контакты</a>
-                </li>
-                <li class="nav-item">
-                    <a href="job-search.html" class="nav-link">Поиск работы</a>
-                </li>
-                <li class="nav-item">
-                    <a href="profile.html" class="nav-link">Профиль</a>
-                </li>
+                <li><a href="jobs.html">Поиск работы</a></li>
+                <li><a href="contacts.html">Контакты</a></li>
+                <li><a href="profile.html" class="nav-btn">Профиль</a></li>
             </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
         </div>
     </nav>
 
-    <!-- Создание резюме -->
-    <section class="resume-create-section">
+    <div class="resume-create-container">
         <div class="container">
             <div class="resume-header">
                 <h1>Создание резюме</h1>
-                <p>Заполните все необходимые поля для создания профессионального резюме</p>
+                <div class="resume-progress">
+                    <div class="progress-step active" data-step="1">Личные данные</div>
+                    <div class="progress-step" data-step="2">Образование</div>
+                    <div class="progress-step" data-step="3">Опыт работы</div>
+                    <div class="progress-step" data-step="4">Навыки</div>
+                    <div class="progress-step" data-step="5">Просмотр</div>
+                </div>
             </div>
 
-            <form class="resume-form" id="resumeForm">
-                <!-- Личные данные -->
-                <div class="form-section">
+            <form id="resumeForm" class="resume-form">
+                <!-- Шаг 1: Личные данные -->
+                <div class="form-step active" data-step="1">
                     <h2>Личные данные</h2>
-                    <div class="form-row">
+                    
+                    <div class="form-grid">
                         <div class="form-group">
-                            <label for="fullName">ФИО *</label>
-                            <input type="text" id="fullName" name="fullName" placeholder="Иванов Иван Иванович" required>
+                            <label for="resumeFullName">ФИО *</label>
+                            <input type="text" id="resumeFullName" name="fullName" required>
                         </div>
+                        
                         <div class="form-group">
-                            <label for="birthDate">Дата рождения</label>
-                            <input type="date" id="birthDate" name="birthDate">
+                            <label for="resumePhone">Телефон *</label>
+                            <input type="tel" id="resumePhone" name="phone" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="resumeEmail">Email *</label>
+                            <input type="email" id="resumeEmail" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="resumeAddress">Адрес проживания</label>
+                            <input type="text" id="resumeAddress" name="address">
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="phone">Телефон *</label>
-                            <input type="tel" id="phone" name="phone" placeholder="+7 (999) 123-45-67" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email *</label>
-                            <input type="email" id="email" name="email" placeholder="ivan.ivanov@email.com" required>
+                </div>
+
+                <!-- Шаг 2: Образование -->
+                <div class="form-step" data-step="2">
+                    <h2>Образование</h2>
+                    <p class="step-description">Обязательно к заполнению. Можно добавить несколько учебных заведений.</p>
+                    
+                    <div id="educationList">
+                        <div class="education-item">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Учебное заведение *</label>
+                                    <input type="text" name="educationInstitution" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Специальность *</label>
+                                    <input type="text" name="educationSpecialty" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Год окончания *</label>
+                                    <input type="number" name="educationYear" min="1950" max="2030" required>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-danger btn-remove"  onclick="resumeManager.removeEducation(this)">Удалить</button>
                         </div>
                     </div>
+                    
+                    <button type="button" class="btn btn-secondary" style="color: #2563eb;" onclick="resumeManager.addEducation()">+ Добавить образование</button>
+                </div>
+
+                <!-- Шаг 3: Опыт работы -->
+                <div class="form-step" data-step="3">
+                    <h2>Опыт работы</h2>
+                    <p class="step-description">Обязательно к заполнению. Если опыта нет, выберите "Нет опыта".</p>
+                    
                     <div class="form-group">
-                        <label for="address">Адрес проживания</label>
-                        <input type="text" id="address" name="address" placeholder="г. Москва, ул. Примерная, д. 1">
-                    </div>
-                </div>
-
-                <!-- Образование -->
-                <div class="form-section">
-                    <h2>Образование *</h2>
-                    <div class="education-item">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="university">Учебное заведение</label>
-                                <input type="text" id="university" name="university" placeholder="МГУ им. М.В. Ломоносова" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="degree">Степень/Специальность</label>
-                                <input type="text" id="degree" name="degree" placeholder="Бакалавр информатики" required>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="graduationYear">Год окончания</label>
-                                <input type="number" id="graduationYear" name="graduationYear" placeholder="2020" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="gpa">Средний балл (необязательно)</label>
-                                <input type="number" id="gpa" name="gpa" placeholder="4.5" step="0.1" min="0" max="5">
-                            </div>
+                        <label>Есть ли у вас опыт работы? *</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="hasExperience" value="yes" required>
+                                <span>Да</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="hasExperience" value="no" required>
+                                <span>Нет опыта</span>
+                            </label>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-secondary add-education">Добавить образование</button>
-                </div>
-
-                <!-- Желаемая зп -->
-                <div class="form-section">
-                    <h2>Желаемая зарплата</h2>
-                    <div class="form-group">
-                        <label for="desiredSalary">Зарплата (руб.)</label>
-                        <input type="number" id="desiredSalary" name="desiredSalary" placeholder="100000">
-                    </div>
-                </div>
-
-                <!-- Опыт работы -->
-                <div class="form-section">
-                    <h2>Опыт работы(обязательно для выбора)</h2>
-                    <div class="experience-toggle">
-                        <label class="radio-label">
-                            <input type="radio" name="hasExperience" value="yes" required>
-                            <span class="radio-mark"></span>
-                            Есть опыт работы
-                        </label>
-                        <label class="radio-label">
-                            <input type="radio" name="hasExperience" value="no" required>
-                            <span class="radio-mark"></span>
-                            Нет опыта работы
-                        </label>
-                    </div>
-
-                    <div class="experience-section" id="experienceSection" style="display: none;">
-                        <div class="experience-item">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="company">Компания</label>
-                                    <input type="text" id="company" name="company" placeholder="ООО 'Пример'">
+                    
+                    <div id="experienceSection" style="display: none;">
+                        <div id="experienceList">
+                            <div class="experience-item">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Компания *</label>
+                                        <input type="text" name="experienceCompany" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Должность *</label>
+                                        <input type="text" name="experiencePosition" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Период работы *</label>
+                                        <input type="text" name="experiencePeriod" placeholder="Например: 2020-2023" required>
+                                    </div>
+                                    <div class="form-group full-width">
+                                        <label>Обязанности и достижения</label>
+                                        <textarea name="experienceResponsibilities" rows="3"></textarea>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="position">Должность</label>
-                                    <input type="text" id="position" name="position" placeholder="Frontend разработчик">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="startDate">Дата начала</label>
-                                    <input type="date" id="startDate" name="startDate">
-                                </div>
-                                <div class="form-group">
-                                    <label for="endDate">Дата окончания</label>
-                                    <input type="date" id="endDate" name="endDate">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="responsibilities">Обязанности и достижения</label>
-                                <textarea id="responsibilities" name="responsibilities" rows="4" placeholder="Опишите ваши обязанности и достижения"></textarea>
+                                <button type="button" class="btn btn-danger btn-remove" onclick="resumeManager.removeExperience(this)">Удалить</button>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-secondary add-experience">Добавить место работы</button>
+                        <button type="button" class="btn btn-secondary" onclick="resumeManager.addExperience()">+ Добавить место работы</button>
                     </div>
                 </div>
 
-                <!-- Навыки -->
-                <div class="form-section">
+                <!-- Шаг 4: Навыки -->
+                <div class="form-step" data-step="4">
                     <h2>Навыки</h2>
-                    <div class="skills-section">
-                        <div class="form-group">
-                            <label for="professionalSkills">Профессиональные навыки</label>
-                            <textarea id="professionalSkills" name="professionalSkills" rows="3" placeholder="JavaScript, React, Node.js, Git"></textarea>
+                    <p class="step-description">Добавьте ваши профессиональные и личные навыки.</p>
+                    
+                    <div class="form-group">
+                        <label for="desiredSalary">Желаемая заработная плата</label>
+                        <input type="number" id="desiredSalary" name="desiredSalary" placeholder="Например: 50000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Навыки</label>
+                        <div class="skills-input">
+                            <input type="text" id="skillInput" placeholder="Введите навык и нажмите Enter">
+                            <button type="button" class="btn btn-primary" onclick="resumeManager.addSkill()">Добавить</button>
                         </div>
-                        <div class="form-group">
-                            <label for="personalSkills">Личные качества</label>
-                            <textarea id="personalSkills" name="personalSkills" rows="3" placeholder="Коммуникабельность, ответственность, стрессоустойчивость"></textarea>
+                        <div id="skillsList" class="skills-list">
+                            <!-- Навыки будут добавляться динамически -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Шаблон резюме -->
-<!-- Шаблон резюме -->
-<div class="form-section">
-    <h2>Предпросмотр резюме</h2>
-    <div class="template-info">
-        <div class="template-preview">
-            <!-- Миниатюра предпросмотра резюме -->
-            <div class="resume-mini-preview" id="resumeMiniPreview">
-                <div class="mini-resume-header">
-                    <div class="mini-photo">
-                        <img id="miniAvatar" src="images/default-avatar.jpg" alt="Фото">
-                    </div>
-                    <div class="mini-info">
-                        <h4 id="miniFullName">Иванов Иван Иванович</h4>
-                        <p id="miniContacts">📱 +7 (999) 123-45-67 | 📧 example@email.com</p>
+                <!-- Шаг 5: Просмотр -->
+                <div class="form-step" data-step="5">
+                    <h2>Проверьте данные</h2>
+                    <div id="resumePreview" class="resume-preview">
+                        <!-- Предпросмотр будет генерироваться динамически -->
                     </div>
                 </div>
-                <div class="mini-resume-body">
-                    <div class="mini-section">
-                        <strong>Навыки:</strong>
-                        <div id="miniSkills" class="mini-skills">
-                            <span class="mini-skill-tag">JavaScript</span>
-                            <span class="mini-skill-tag">HTML/CSS</span>
-                            <span class="mini-skill-tag">React</span>
-                        </div>
-                    </div>
-                    <div class="mini-section">
-                        <strong>Образование:</strong>
-                        <p id="miniEducation">МГУ им. Ломоносова, Бакалавр информатики</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="template-description">
-            <h3>Профессиональный шаблон</h3>
-            <p>Ваше резюме автоматически формируется на основе введенных данных. Предпросмотр обновляется в реальном времени.</p>
-            <ul class="template-features">
-                <li>✅ Автозаполнение данными профиля</li>
-                <li>✅ Профессиональное оформление</li>
-                <li>✅ Адаптивный дизайн</li>
-                <li>✅ Поддержка печати и экспорта</li>
-            </ul>
-            <div class="template-actions">
-                <button class="btn btn-primary" id="fullPreviewBtn">
-                    Полный предпросмотр
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-                <!-- Кнопки действий -->
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="saveDraftBtn">Сохранить черновик</button>
-                    <button type="submit" class="btn btn-success">Создать резюме</button>
+
+                <!-- Навигация по шагам -->
+                <div class="form-navigation">
+                    <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none; color: #2563eb;">Назад</button>
+                    <button type="button" class="btn btn-primary" id="nextBtn">Далее</button>
+                    <button type="submit" class="btn btn-success" id="submitBtn" style="display: none;">Сохранить резюме</button>
                 </div>
             </form>
         </div>
-    </section>
+    </div>
 
-    <!-- Футер -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>Lime</h3>
-                    <p>Ваш надежный помощник в поиске работы</p>
-                </div>
-                <div class="footer-section">
-                    <h4>Навигация</h4>
-                    <ul>
-                        <li><a href="about.html">О компании</a></li>
-                        <li><a href="contacts.html">Контакты</a></li>
-                        <li><a href="job-search.html">Поиск работы</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>Контакты</h4>
-                    <p>Телефон: +7 (966) 129-45-45</p>
-                    <p>Email: info@lime.ru</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; Lime. Все права защищены.</p>
-            </div>
-        </div>
-    </footer>
-
-    <script src="js/script.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/resume.js"></script>
 </body>
 </html>
